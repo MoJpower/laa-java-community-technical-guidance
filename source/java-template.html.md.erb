@@ -1,0 +1,50 @@
+---
+title: LAA Spring Boot microservice template
+---
+
+# <%= current_page.data.title %>
+
+Start new Java services from the LAA template repository: <https://github.com/ministryofjustice/laa-spring-boot-microservice-template>. It bakes in common plugins, quality controls, and example modules so teams can focus on service logic.
+
+## What’s included
+
+- Gradle plugin `uk.gov.laa.laa-spring-boot-gradle-plugin` (via [laa-spring-boot-common](java-common.html)) wiring in Checkstyle, Dependency Management, Jacoco, Spring Boot, Test Logger, Versions, Maven Publish.
+- Modules: `spring-boot-microservice-api` (OpenAPI spec and generated stubs) and `spring-boot-microservice-service` (REST CRUD with JPA/H2).
+- Example OpenAPI + Swagger UI + actuator endpoints preconfigured.
+
+## When creating a new repo
+
+1. Create from the template on GitHub.
+2. Update metadata:
+   - Rewrite README and repository description to describe your service.
+   - Update CODEOWNERS (teams preferred) and set branch protection on `main`.
+   - Grant team permissions (at least one Admin team).
+3. Configure automation:
+   - Enable Dependabot (uncomment registries as needed).
+   - Add the repo to the LAA Snyk org and set `SNYK_TOKEN` as a secret.
+4. Update packages and names:
+   - Replace `uk.gov.laa.springboot.microservice.*` with `uk.gov.laa.<your-app>.*`.
+   - Remove demo SQL scripts in `src/main/resources`; they are examples only.
+5. Check container defaults:
+   - Use `amazoncorretto:25-alpine` (or the current Corretto LTS) as the base image.
+
+## Build and run locally
+
+```bash
+./gradlew clean build          # compile + tests + coverage
+./gradlew integrationTest      # run integration tests
+./gradlew bootRun              # run the app locally
+docker compose up              # run via Docker
+```
+
+## Useful endpoints (defaults)
+
+- Swagger UI: <http://localhost:8080/swagger-ui/index.html>
+- OpenAPI JSON: <http://localhost:8080/v3/api-docs>
+- Actuator: <http://localhost:8080/actuator> and <http://localhost:8080/actuator/health>
+
+## Notes and cautions
+
+- H2 and example SQL scripts are for demos only—remove before production.
+- Keep the Gradle plugin version aligned with [laa-spring-boot-common](java-common.html) releases; check its changelog for updates.
+- Prefer Amazon Corretto LTS JDKs to match LAA build and runtime environments.

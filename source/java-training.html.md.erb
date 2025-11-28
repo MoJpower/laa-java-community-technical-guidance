@@ -1,0 +1,37 @@
+---
+title: Java tutorials and training
+---
+
+# <%= current_page.data.title %>
+
+Curated starter material to help new LAA engineers ramp up with Java and Spring. Pair this with the Java setup guide to ensure you are using the expected JDK.
+
+## Quick guided tutorials
+
+- Official Spring guides: <https://spring.io/guides> — short, focused walkthroughs (REST, data, security, messaging).
+- Baeldung Spring Boot tutorial: <https://www.baeldung.com/spring-boot> — longer form with background, starter projects, and testing examples.
+
+## Hands-on courses (licenced platforms)
+
+Request access in Slack `#licenced-offerings-skillsoft-pluralsight-oreilly-linkedinlearning`. Each platform has beginner Java tracks and Spring Boot fundamentals:
+
+- O’Reilly: Java fundamentals, modern Java (streams/records), Spring Boot fundamentals, testing with JUnit/Mockito.
+- Pluralsight: Java language path, Spring Boot fundamentals, Spring Data JPA, REST APIs.
+- Skillsoft: Core Java programming, Java best practices, Spring Boot microservices.
+- LinkedIn Learning: Java essential training, Java concurrency, Spring Boot: building APIs.
+
+## Suggested learning path
+
+- Start with a Spring guide (REST + data) and run it locally using the Corretto LTS JDK recommended in our setup guide.
+- Follow a short course on one platform above to deepen language fundamentals (collections, streams, concurrency, testing).
+- Build a small API using Spring Boot with controller, service, repository layers, Flyway migrations, and integration tests.
+- Add observability basics: health checks, metrics, and structured logging; then containerise with a `Dockerfile` using the `amazoncorretto:25-alpine` base to mirror LAA defaults.
+- Clone the LAA template and practice end-to-end: <https://github.com/ministryofjustice/laa-spring-boot-microservice-template>
+- Walk through the template internals with the [Microservice template fundamentals training](java-template-training.html) to learn the build, API-first flow, layers, testing, and packaging.
+
+  ```bash
+  git clone https://github.com/ministryofjustice/laa-spring-boot-microservice-template.git
+  cd laa-spring-boot-microservice-template
+  ./gradlew clean build
+  ./gradlew bootRun
+  ```

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en" class="govuk-template no-js">
+  <head>
+    
+    
+
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>LAA Spring Boot microservice template fundamentals - LAA Java Community Technical Guidance</title>
+
+    <link href="stylesheets/manifest.css" rel="stylesheet" />
+
+    <link rel="canonical" href="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-template-training.html">
+      <link rel="icon" sizes="48x48" href="images/favicon.ico">
+      <link rel="icon" sizes="any" href="/images/favicon.svg" type="image/svg+xml">
+
+      <meta name="robots" content="noindex" />
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:domain" content="ministryofjustice.github.io" />
+      <meta name="twitter:image" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/images/opengraph-image.png" />
+      <meta name="twitter:title" content="LAA Spring Boot microservice template fundamentals - LAA Java Community Technical Guidance" />
+      <meta name="twitter:url" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-template-training.html" />
+
+      <meta property="og:image" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/images/opengraph-image.png" />
+      <meta property="og:site_name" content="LAA Java Community Technical Guidance" />
+      <meta property="og:title" content="LAA Spring Boot microservice template fundamentals" />
+      <meta property="og:type" content="object" />
+      <meta property="og:url" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-template-training.html" />
+
+    
+  </head>
+
+  <body class="govuk-template__body">
+    <script>document.body.className += ' js-enabled' + ('noModule' in HTMLScriptElement.prototype ? ' govuk-frontend-supported' : '');</script>
+
+    <div class="app-pane">
+      
+      <div class="app-pane__header toc-open-disabled">
+        <a href="#content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
+
+        <header class="govuk-header app-header" role="banner" data-module="govuk-header">
+  <div class="govuk-header__container govuk-header__container--full-width">
+    <div class="govuk-header__logo">
+      <a href="./" class="govuk-header__link govuk-header__link--homepage">
+        <span class="govuk-header__product-name">
+          LAA Java Community Technical Guidance
+        </span>
+      </a>
+    </div>
+  </div>
+</header>
+
+      </div>
+
+        <div id="toc-heading" class="toc-show fixedsticky">
+          <button type="button" class="toc-show__label js-toc-show" aria-controls="toc">
+            Table of contents <span class="toc-show__icon"></span>
+          </button>
+        </div>
+
+      <div class="app-pane__body" data-module="in-page-navigation">
+          <div class="app-pane__toc">
+            <div class="toc" data-module="table-of-contents" tabindex="-1">
+              <div class="search" data-module="search" data-path-to-site-root="./">
+  <form action="https://www.google.co.uk/search" method="get" role="search" class="search__form govuk-!-margin-bottom-4">
+    <input type="hidden" name="as_sitesearch" value="https://ministryofjustice.github.io/laa-java-community-technical-guidance"/>
+    <label class="govuk-label search__label" for="search">
+      Search (via Google)
+    </label>
+    <input
+      type="search"
+      id="search" name="q"
+      class="govuk-input govuk-!-margin-bottom-0 search__input"
+      aria-controls="search-results"
+      placeholder="Search">
+    <button type="submit" class="search__button">Search</button>
+  </form>
+</div>
+
+              <button type="button" class="toc__close js-toc-close" aria-controls="toc" aria-label="Hide table of contents"></button>
+              <nav id="toc" class="js-toc-list toc__list" aria-labelledby="toc-heading" data-module="collapsible-navigation">
+                      <ul>
+  <li>
+    <a href="#laa-spring-boot-microservice-template-fundamentals"><span>LAA Spring Boot microservice template fundamentals</span></a>
+    <ul>
+      <li>
+        <a href="#1-multi-module-layout-and-gradle-basics"><span>1) Multi-module layout and Gradle basics</span></a>
+      </li>
+      <li>
+        <a href="#2-api-first-approach"><span>2) API-first approach</span></a>
+      </li>
+      <li>
+        <a href="#3-entry-point-and-configuration"><span>3) Entry point and configuration</span></a>
+      </li>
+      <li>
+        <a href="#4-layered-rest-design"><span>4) Layered REST design</span></a>
+      </li>
+      <li>
+        <a href="#5-dto-and-mapping-patterns"><span>5) DTO and mapping patterns</span></a>
+      </li>
+      <li>
+        <a href="#6-persistence-fundamentals"><span>6) Persistence fundamentals</span></a>
+      </li>
+      <li>
+        <a href="#7-validation-and-request-handling"><span>7) Validation and request handling</span></a>
+      </li>
+      <li>
+        <a href="#8-error-handling-and-logging"><span>8) Error handling and logging</span></a>
+      </li>
+      <li>
+        <a href="#9-api-documentation-and-discovery"><span>9) API documentation and discovery</span></a>
+      </li>
+      <li>
+        <a href="#10-testing-strategy"><span>10) Testing strategy</span></a>
+      </li>
+      <li>
+        <a href="#11-build-outputs-and-packaging"><span>11) Build outputs and packaging</span></a>
+      </li>
+      <li>
+        <a href="#12-docker-basics"><span>12) Docker basics</span></a>
+      </li>
+      <li>
+        <a href="#13-local-runbook"><span>13) Local runbook</span></a>
+      </li>
+      <li>
+        <a href="#14-code-style-and-annotations"><span>14) Code style and annotations</span></a>
+      </li>
+      <li>
+        <a href="#15-next-steps-for-customisation"><span>15) Next steps for customisation</span></a>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+
+              </nav>
+            </div>
+          </div>
+
+        <div class="app-pane__content toc-open-disabled" aria-label="Content">
+          <main id="content" class="technical-documentation" data-module="anchored-headings">
+            <h1 id="laa-spring-boot-microservice-template-fundamentals">LAA Spring Boot microservice template fundamentals</h1>
+<p>Use this single, detailed learning path to understand and extend the template. Follow the numbered sections in order; each one points to real files and commands you can run right away.</p>
+<h2 id="1-multi-module-layout-and-gradle-basics">1) Multi-module layout and Gradle basics</h2>
+
+<ol>
+<li>Open <code>settings.gradle</code> to see the two modules (<code>spring-boot-microservice-api</code>, <code>spring-boot-microservice-service</code>) and the plugin management block that pulls the shared Gradle plugin from GitHub Packages.</li>
+<li>Open the root <code>build.gradle</code> and <code>gradle.properties</code> to confirm the shared <code>group</code> and <code>version</code> that apply to both modules.</li>
+<li>Inspect <code>spring-boot-microservice-service/build.gradle</code> to see the <code>uk.gov.laa.springboot.laa-spring-boot-gradle-plugin</code>, Lombok, MapStruct, Spring starters, H2, and Jacoco configuration.</li>
+<li>Inspect <code>spring-boot-microservice-api/build.gradle</code> to see the OpenAPI generator wiring, generated source directory addition, and the disabled <code>bootJar</code>/<code>bootRun</code> tasks.</li>
+<li>From the repo root, run <code>./gradlew projects</code> to verify Gradle sees both modules and their tasks.</li>
+<li>Run <code>./gradlew tasks --group build</code> to view common tasks; note <code>bootRun</code>, <code>bootJar</code>, <code>test</code>, and <code>integrationTest</code> come from the shared plugin.</li>
+<li>Build everything with <code>./gradlew build</code>; this compiles code, runs unit tests, enforces Checkstyle, and produces coverage reports.</li>
+<li>If you only need the runnable jar, run <code>./gradlew :spring-boot-microservice-service:bootJar</code> and find it in <code>spring-boot-microservice-service/build/libs/</code>.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>graph TD
+    A[repo root] --&gt; B[settings.gradle]
+    A --&gt; C[build.gradle]
+    A --&gt; D[gradle.properties]
+    A --&gt; E[spring-boot-microservice-api/]
+    A --&gt; F[spring-boot-microservice-service/]
+    E --&gt; E1[open-api-specification.yml]
+    E --&gt; E2[build.gradle]
+    F --&gt; F1[src/main/resources/application.yml]
+    F --&gt; F2[build.gradle]
+</code></pre></div><h2 id="2-api-first-approach">2) API-first approach</h2>
+
+<ol>
+<li>Open <code>spring-boot-microservice-api/open-api-specification.yml</code> and read the <code>/api/v1/items</code> paths to understand the current contract.</li>
+<li>Update the YAML when adding or changing endpoints; include required fields and validation keywords (e.g., <code>minLength</code>, <code>maxLength</code>) so they propagate to generated models.</li>
+<li>Regenerate sources with <code>./gradlew :spring-boot-microservice-api:openApiGenerate</code> (or any build task). Generated interfaces and models land under <code>spring-boot-microservice-api/generated/src/main/java</code>.</li>
+<li>Note that <code>sourceSets.main.java.srcDirs += [&#39;generated/src/main/java&#39;]</code> adds generated code to the API module; interfaces like <code>ItemsApi</code> and models like <code>Item</code> and <code>ItemRequestBody</code> come from here.</li>
+<li>In the service module, implement the generated interface in your controller (see <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/controller/ItemController.java</code>) so routing and method signatures stay aligned with the spec.</li>
+<li>After changing the spec, regenerate, then update controllers, services, mappers, and tests until the build is green—compilation errors will highlight missing implementations.</li>
+<li>To build only the contract, run <code>./gradlew :spring-boot-microservice-api:build</code>; <code>bootJar</code> is disabled because the API module is not runnable.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
+    A[open-api-specification.yml] --&gt; B[openApiGenerate task]
+    B --&gt; C[generated interfaces/models]
+    C --&gt; D[controller implements ItemsApi]
+    D --&gt; E[service + mapper + repository]
+</code></pre></div><h2 id="3-entry-point-and-configuration">3) Entry point and configuration</h2>
+
+<ol>
+<li>Open <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/SpringBootMicroserviceApplication.java</code> to see the <code>SpringApplication.run</code> entry point.</li>
+<li>Review <code>spring-boot-microservice-service/src/main/resources/application.yml</code> for app metadata, actuator exposure, and the in-memory H2 datasource. Hibernate auto-DDL is disabled via <code>spring.jpa.hibernate.ddl-auto: none</code>.</li>
+<li>Inspect <code>spring-boot-microservice-service/src/main/resources/schema.sql</code> and <code>data.sql</code> that create and seed the <code>ITEMS</code> table during startup.</li>
+<li>Start the app locally with <code>./gradlew bootRun</code>; Spring Boot loads <code>application.yml</code> by default.</li>
+<li>Override properties via environment variables (e.g., <code>SPRING_DATASOURCE_URL</code>) or profile-specific files like <code>application-local.yml</code>, then run with <code>--spring.profiles.active=local</code>.</li>
+<li>Keep secrets out of <code>application.yml</code>; prefer environment variables or externalised configuration for credentials and tokens.</li>
+<li>If switching databases (e.g., Postgres), update the datasource driver/URL, remove the H2 console, and introduce a migration tool (Flyway or Liquibase) instead of <code>schema.sql</code>.</li>
+</ol>
+<h2 id="4-layered-rest-design">4) Layered REST design</h2>
+
+<ol>
+<li>Read <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/controller/ItemController.java</code> to see a controller implementing the generated <code>ItemsApi</code> interface.</li>
+<li>Notice controllers stay thin: logging, status codes, and delegating to services. Avoid embedding business logic in controllers.</li>
+<li>Open <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/service/ItemService.java</code> to see business rules (existence checks, mapping) separated from HTTP concerns.</li>
+<li>Inspect <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/repository/ItemRepository.java</code>, which extends <code>JpaRepository</code> for persistence operations.</li>
+<li>Check <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/entity/ItemEntity.java</code> for JPA mappings; persistence annotations belong here, not in controllers or services.</li>
+<li>When adding an endpoint: update the OpenAPI spec, regenerate code, implement the controller method, add service logic, and extend the repository if needed.</li>
+<li>Express business failures with domain exceptions in the service layer so the global exception handler can return consistent HTTP responses.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>sequenceDiagram
+    participant C as Client
+    participant Ctrl as Controller
+    participant S as Service
+    participant R as Repository
+    participant DB as Database
+    C-&gt;&gt;Ctrl: HTTP request
+    Ctrl-&gt;&gt;S: call service method
+    S-&gt;&gt;R: repository query/save
+    R-&gt;&gt;DB: SQL
+    DB--&gt;&gt;R: result
+    R--&gt;&gt;S: entity/result
+    S--&gt;&gt;Ctrl: DTO/response info
+    Ctrl--&gt;&gt;C: HTTP response
+</code></pre></div><h2 id="5-dto-and-mapping-patterns">5) DTO and mapping patterns</h2>
+
+<ol>
+<li>After OpenAPI generation, explore <code>spring-boot-microservice-api/generated/src/main/java/uk/gov/justice/laa/springboot/microservice/model/</code> to see DTOs like <code>Item</code> and <code>ItemRequestBody</code>.</li>
+<li>Review <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/mapper/ItemMapper.java</code>, which uses MapStruct (<code>@Mapper(componentModel = &quot;spring&quot;)</code>) so Spring can inject the generated implementation.</li>
+<li>Keep the annotation processor <code>org.mapstruct:mapstruct-processor:1.6.3</code> in <code>spring-boot-microservice-service/build.gradle</code>; it generates mappers at compile time.</li>
+<li>In services, convert entities to DTOs with the mapper (e.g., <code>ItemService#getAllItems</code>) before returning data to controllers—never expose entities directly.</li>
+<li>When creating or updating entities from requests, either map the DTO or copy fields, then persist via the repository.</li>
+<li>If you add fields to the contract or entity, update the mapper interface; MapStruct will regenerate code and fail the build if mappings are incomplete when stricter policies are enabled.</li>
+<li>For non-trivial mappings (enums, nested objects), add helper methods or <code>@Mapping</code> annotations to keep transformations declarative and testable.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
+    A[ItemRequestBody / Item DTOs] --MapStruct--&gt; B[ItemMapper (generated impl)]
+    B --toEntity--&gt; C[ItemEntity]
+    C --toDto--&gt; A
+</code></pre></div><h2 id="6-persistence-fundamentals">6) Persistence fundamentals</h2>
+
+<ol>
+<li>Study <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/entity/ItemEntity.java</code>: <code>@Entity</code>, <code>@Table(&quot;ITEMS&quot;)</code>, identity <code>@Id</code>, and simple fields.</li>
+<li>Review <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/repository/ItemRepository.java</code> extending <code>JpaRepository&lt;ItemEntity, Long&gt;</code>; add derived queries (e.g., <code>findByName</code>) as needed.</li>
+<li>Look at <code>spring-boot-microservice-service/src/main/resources/schema.sql</code> for table creation and <code>data.sql</code> for seed data; Spring runs these at startup because Hibernate auto-DDL is off.</li>
+<li>Run <code>./gradlew bootRun</code> and confirm data loads by hitting endpoints or the H2 console at <code>/h2-console</code> (JDBC URL <code>jdbc:h2:mem:itemsDb</code>).</li>
+<li>For new entities, create the class, add a repository, extend <code>schema.sql</code>, and optionally add demo data to <code>data.sql</code>.</li>
+<li>Use <code>@Transactional</code> on services or methods that need atomic updates; integration tests already mark transactions to roll back between tests.</li>
+<li>For production, replace H2 with your target database, update datasource settings, and move to Flyway/Liquibase migrations instead of <code>schema.sql</code>.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>erDiagram
+    ITEMS {
+        BIGINT id PK
+        VARCHAR name
+        VARCHAR description
+    }
+</code></pre></div><p><em>(data.sql seeds initial rows into ITEMS for demos)</em></p>
+<h2 id="7-validation-and-request-handling">7) Validation and request handling</h2>
+
+<ol>
+<li>Required fields in <code>open-api-specification.yml</code> (e.g., <code>name</code>, <code>description</code>) generate Bean Validation annotations on DTOs; missing fields trigger <code>400 Bad Request</code> before controller logic runs.</li>
+<li>Keep controller method signatures inherited from <code>ItemsApi</code>; Spring applies validation annotations on generated models automatically.</li>
+<li>Strengthen rules by adding OpenAPI constraints (<code>minLength</code>, <code>maxLength</code>, patterns). Regenerate sources so Bean Validation annotations stay in sync.</li>
+<li>When adding custom validation, annotate controller parameters with <code>@Valid</code> and add explicit annotations on DTOs or entities.</li>
+<li>Use <code>@RequestBody</code> for JSON payloads and path variables/params from the generated interface; avoid manual parsing.</li>
+<li>See <code>spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerTest.java</code> for MockMvc tests that expect 400 responses when required fields are missing.</li>
+<li>Keep production error messages generic; log sensitive details (at debug level) instead of returning them to clients.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
+    A[HTTP request] --&gt; B[Spring MVC binding]
+    B --&gt; C{Validation OK?}
+    C --No--&gt; D[400 Bad Request auto-response]
+    C --Yes--&gt; E[Controller]
+    E --&gt; F[Service]
+</code></pre></div><h2 id="8-error-handling-and-logging">8) Error handling and logging</h2>
+
+<ol>
+<li>Check <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/exception/ItemNotFoundException.java</code> for the domain exception used when an item is missing.</li>
+<li>Review <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/exception/GlobalExceptionHandler.java</code>, which maps exceptions to HTTP responses (<code>404</code> for missing items, <code>500</code> for generic errors) and logs unexpected failures.</li>
+<li>Throw domain-specific exceptions from services instead of returning null or Optionals so the handler can produce clear status codes.</li>
+<li>Use Lombok’s <code>@Slf4j</code> logger (as in <code>ItemController</code>) to log identifiers and outcomes; avoid logging sensitive payloads.</li>
+<li>When adding new exception types, register <code>@ExceptionHandler</code> methods in the advice class to control status codes and response bodies.</li>
+<li>Choose log levels intentionally: info for lifecycle events, warn for client errors, error for unexpected failures.</li>
+<li>Validate error handling via tests like <code>spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/exception/GlobalExceptionHandlerTest.java</code> and controller tests asserting 404/500 behaviour.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
+    A[Service throws ItemNotFoundException] --&gt; B[GlobalExceptionHandler]
+    B --&gt; C[404 Not Found response]
+    A2[Service throws unexpected Exception] --&gt; B
+    B --&gt; D[500 Internal Server Error response + error log]
+</code></pre></div><h2 id="9-api-documentation-and-discovery">9) API documentation and discovery</h2>
+
+<ol>
+<li>Confirm the Springdoc dependency exists in <code>spring-boot-microservice-service/build.gradle</code> (<code>org.springdoc:springdoc-openapi-starter-webmvc-ui</code>).</li>
+<li>Start the service with <code>./gradlew bootRun</code>.</li>
+<li>Open <code>http://localhost:8080/swagger-ui/index.html</code> to explore endpoints defined in <code>open-api-specification.yml</code>.</li>
+<li>Access the raw OpenAPI JSON at <code>http://localhost:8080/v3/api-docs</code> for client generation or contract testing.</li>
+<li>After editing the spec and regenerating code, restart the app so Swagger UI and <code>/v3/api-docs</code> reflect the changes.</li>
+<li>If you later secure the API, configure Springdoc to expose docs appropriately (e.g., require auth headers or restrict roles).</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart TD
+    A[Running service] --&gt; B[/swagger-ui/index.html/]
+    A --&gt; C[/v3/api-docs JSON/]
+    B --&gt; D[Try it out to call Items endpoints]
+    C --&gt; E[Client generation / contract tests]
+</code></pre></div><h2 id="10-testing-strategy">10) Testing strategy</h2>
+
+<ol>
+<li>Run all tests with <code>./gradlew test</code> (unit + slice) and <code>./gradlew integrationTest</code> (full stack). CI usually runs <code>./gradlew build</code>, which triggers both.</li>
+<li>Review unit tests such as <code>spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/service/ItemServiceTest.java</code> that mock repositories and mappers.</li>
+<li>Inspect controller slice tests in <code>spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerTest.java</code>, which use <code>@WebMvcTest</code> + MockMvc to verify request mapping, validation, and status codes while mocking services.</li>
+<li>Check the integration test <code>spring-boot-microservice-service/src/integrationTest/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerIntegrationTest.java</code>, which boots Spring with H2 and exercises repository interactions and SQL scripts.</li>
+<li>Jacoco is configured in <code>spring-boot-microservice-service/build.gradle</code>; the application class is excluded to focus coverage on custom logic.</li>
+<li>When adding endpoints or business rules, add unit tests for services/mappers, controller tests for request/response behaviour, and integration tests for persistence changes.</li>
+<li>Use generated model builders (<code>Item.builder()</code>) or simple test data builders to keep test setup concise and aligned with the contract.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart TD
+    C[Unit tests\nItemServiceTest, ItemMapperTest] --&gt; B[WebMvcTest slice tests\nItemControllerTest]
+    B --&gt; A[Integration tests\nItemControllerIntegrationTest]
+</code></pre></div><h2 id="11-build-outputs-and-packaging">11) Build outputs and packaging</h2>
+
+<ol>
+<li>The API module disables <code>bootJar</code>/<code>bootRun</code> because it only ships interfaces and models. Build it with <code>./gradlew :spring-boot-microservice-api:build</code> if you need the contract artifact.</li>
+<li>The service module produces the runnable jar; build it with <code>./gradlew :spring-boot-microservice-service:bootJar</code> or as part of <code>./gradlew build</code>.</li>
+<li>Find the output jar in <code>spring-boot-microservice-service/build/libs/</code>; this is what the Dockerfile copies into the image.</li>
+<li>Code quality tools (Checkstyle, Jacoco, dependency management, test logging, Versions) come from the shared Gradle plugin. Run <code>./gradlew check</code> to apply them before packaging.</li>
+<li>If publishing artifacts, enable Maven Publish or use the plugin defaults and configure a repository target.</li>
+<li>When renaming the project or group, update <code>settings.gradle</code>, root <code>build.gradle</code>, and <code>gradle.properties</code> so artifact coordinates stay consistent.</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
+    A[./gradlew build] --&gt; B[bootJar in build/libs/]
+    B --&gt; C[Dockerfile COPY app.jar]
+    C --&gt; D[docker build image]
+    D --&gt; E[docker run -p 8080:8080]
+    D --&gt; F[docker compose up --build]
+</code></pre></div><h2 id="12-docker-basics">12) Docker basics</h2>
+
+<ol>
+<li>Build the service jar first: <code>./gradlew :spring-boot-microservice-service:bootJar</code> so the Docker build can copy it.</li>
+<li>Open the root <code>Dockerfile</code> to see the base JDK image, creation of a non-root user, exposed port <code>8080</code>, and the <code>COPY</code> of the service jar into <code>/app</code>.</li>
+<li>Build an image locally with <code>docker build -t laa-spring-boot-microservice .</code> from the repo root.</li>
+<li>Run the container with <code>docker run -p 8080:8080 laa-spring-boot-microservice</code> and hit <code>http://localhost:8080/api/v1/items</code>.</li>
+<li>Use <code>docker compose up --build</code> (see <code>docker-compose.yml</code>) for quick local orchestration; add other services (e.g., a database) here as your app grows.</li>
+<li>If you rename the service module, update the <code>Dockerfile</code> jar path and the compose service name/build context accordingly.</li>
+</ol>
+<h2 id="13-local-runbook">13) Local runbook</h2>
+
+<ol>
+<li>Ensure Java (via the Gradle toolchain) is available; install Docker if you plan to containerize locally.</li>
+<li>Start the app: <code>./gradlew bootRun</code> (uses H2 with <code>schema.sql</code>/<code>data.sql</code>).</li>
+<li>List items: <code>curl http://localhost:8080/api/v1/items</code> (expect five seeded records).</li>
+<li>Fetch one item: <code>curl http://localhost:8080/api/v1/items/1</code>.</li>
+<li>Create an item:
+<code>bash
+curl -i -X POST http://localhost:8080/api/v1/items \
+ -H &#39;Content-Type: application/json&#39; \
+ -d &#39;{&quot;name&quot;:&quot;New Item&quot;,&quot;description&quot;:&quot;Created from curl.&quot;}&#39;
+</code></li>
+<li>Update an item:
+<code>bash
+curl -i -X PUT http://localhost:8080/api/v1/items/2 \
+ -H &#39;Content-Type: application/json&#39; \
+ -d &#39;{&quot;name&quot;:&quot;Updated&quot;,&quot;description&quot;:&quot;Updated description.&quot;}&#39;
+</code></li>
+<li>Delete an item: <code>curl -i -X DELETE http://localhost:8080/api/v1/items/3</code>.</li>
+<li>Check health: <code>curl http://localhost:8080/actuator/health</code>.</li>
+<li>Explore docs at <code>http://localhost:8080/swagger-ui/index.html</code>; inspect the DB via <code>http://localhost:8080/h2-console</code> (JDBC URL <code>jdbc:h2:mem:itemsDb</code>).</li>
+</ol>
+<div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart TD
+    A[bootRun] --&gt; B[GET /api/v1/items -&gt; 200 (5 items)]
+    A --&gt; C[GET /api/v1/items/1 -&gt; 200 item]
+    A --&gt; D[POST /api/v1/items -&gt; 201 + Location header]
+    A --&gt; E[PUT /api/v1/items/{id} -&gt; 204]
+    A --&gt; F[DELETE /api/v1/items/{id} -&gt; 204]
+    A --&gt; G[GET /actuator/health -&gt; 200 UP]
+</code></pre></div><h2 id="14-code-style-and-annotations">14) Code style and annotations</h2>
+
+<ol>
+<li>Review <code>config/checkstyle/checkstyle.xml</code> (Google Java Style). Generated sources are excluded from Checkstyle in the API module (<code>checkstyleMain.exclude &quot;*&quot;</code>) to avoid noise.</li>
+<li>Run <code>./gradlew checkstyleMain checkstyleTest</code> or simply <code>./gradlew check</code> to catch style issues early.</li>
+<li>Lombok is used throughout: <code>@Data</code>, <code>@Builder</code>, <code>@NoArgsConstructor</code>, <code>@AllArgsConstructor</code> on entities/DTOs and <code>@RequiredArgsConstructor</code> + <code>@Slf4j</code> on services/controllers. Prefer constructor injection over field injection.</li>
+<li>Keep annotations layer-specific: HTTP annotations in controllers, validation on DTOs/entities, JPA on entities, and <code>@Transactional</code> on service methods where needed.</li>
+<li>If you drop Lombok, add explicit getters/setters/builders to keep serialization and tests working.</li>
+<li>Maintain consistent package names (<code>uk.gov.justice.laa.springboot.microservice</code> by default) to align with <code>build.gradle</code>/<code>gradle.properties</code>.</li>
+</ol>
+<h2 id="15-next-steps-for-customisation">15) Next steps for customisation</h2>
+
+<ol>
+<li>Rename modules in <code>settings.gradle</code> from <code>spring-boot-microservice-*</code> to your app name (e.g., <code>{app}-api</code>, <code>{app}-service</code>) and update the root <code>build.gradle</code> <code>group</code>.</li>
+<li>Change package declarations under <code>spring-boot-microservice-service/src/main/java</code>, <code>src/test/java</code>, and <code>src/integrationTest/java</code> from <code>uk.gov.justice.laa.springboot.microservice</code> to your namespace; adjust imports accordingly.</li>
+<li>Replace <code>spring-boot-microservice-api/open-api-specification.yml</code> with your real contract, regenerate code, and implement the new interfaces in controllers.</li>
+<li>Update <code>spring-boot-microservice-service/src/main/resources/application.yml</code> values (<code>spring.application.name</code>, <code>info.app.*</code>) and remove demo <code>schema.sql</code>/<code>data.sql</code> once you migrate to real databases.</li>
+<li>Swap H2 for your target database, configure the datasource, and add Flyway/Liquibase migrations.</li>
+<li>Adjust the <code>Dockerfile</code> jar path and <code>docker-compose.yml</code> service names after renaming modules.</li>
+<li>Review any CI workflow paths (if added) that reference <code>spring-boot-microservice-service/build/</code> and update them to the new module name.</li>
+<li>Layer on security, observability, and production configs (Spring Security, centralized logging/metrics) after the fundamentals are stable.</li>
+</ol>
+
+            
+          </main>
+
+          <aside>
+              <ul class="contribution-banner">
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance/blob/main/source/java-template-training.html.md.erb">View source</a></li>
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance/issues/new?body=Problem+with+%27LAA+Spring+Boot+microservice+template+fundamentals%27+%28https%3A%2F%2Fministryofjustice.github.io%2Flaa-java-community-technical-guidance%2Fjava-template-training.html%29&amp;labels=bug&amp;title=Re%3A+%27LAA+Spring+Boot+microservice+template+fundamentals%27">Report problem</a></li>
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance">GitHub Repo</a></li>
+              </ul>
+          </aside>
+
+          <footer class="govuk-footer app-footer" role="contentinfo">
+  <div class="govuk-footer__meta">
+    <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
+
+
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        class="govuk-footer__licence-logo"
+        xmlns="http://www.w3.org/2000/svg"
+        viewbox="0 0 483.2 195.7"
+        height="17"
+        width="41"
+      >
+        <path
+          fill="currentColor"
+          d="M421.5 142.8V.1l-50.7 32.3v161.1h112.4v-50.7zm-122.3-9.6A47.12 47.12 0 0 1 221 97.8c0-26 21.1-47.1 47.1-47.1 16.7 0 31.4 8.7 39.7 21.8l42.7-27.2A97.63 97.63 0 0 0 268.1 0c-36.5 0-68.3 20.1-85.1 49.7A98 98 0 0 0 97.8 0C43.9 0 0 43.9 0 97.8s43.9 97.8 97.8 97.8c36.5 0 68.3-20.1 85.1-49.7a97.76 97.76 0 0 0 149.6 25.4l19.4 22.2h3v-87.8h-80l24.3 27.5zM97.8 145c-26 0-47.1-21.1-47.1-47.1s21.1-47.1 47.1-47.1 47.2 21 47.2 47S123.8 145 97.8 145"
+        />
+      </svg>
+      <span class="govuk-footer__licence-description">
+        All content is available under the
+        <a
+          class="govuk-footer__link"
+          href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+          rel="license"
+        >Open Government Licence v3.0</a>, except where otherwise stated
+      </span>
+    </div>
+    <div class="govuk-footer__meta-item">
+      <a
+        class="govuk-footer__link govuk-footer__copyright-logo"
+        href="https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/"
+      >© Crown copyright</a>
+    </div>
+  </div>
+</footer>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <script src="javascripts/govuk_frontend.js" type="module"></script>
+    <script src="javascripts/application.js"></script>
+  </body>
+</html>

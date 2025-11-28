@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" class="govuk-template no-js">
+  <head>
+    
+    
+
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>LAA Spring Boot common plugins and starters - LAA Java Community Technical Guidance</title>
+
+    <link href="stylesheets/manifest.css" rel="stylesheet" />
+
+    <link rel="canonical" href="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-common.html">
+      <link rel="icon" sizes="48x48" href="images/favicon.ico">
+      <link rel="icon" sizes="any" href="/images/favicon.svg" type="image/svg+xml">
+
+      <meta name="robots" content="noindex" />
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:domain" content="ministryofjustice.github.io" />
+      <meta name="twitter:image" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/images/opengraph-image.png" />
+      <meta name="twitter:title" content="LAA Spring Boot common plugins and starters - LAA Java Community Technical Guidance" />
+      <meta name="twitter:url" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-common.html" />
+
+      <meta property="og:image" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/images/opengraph-image.png" />
+      <meta property="og:site_name" content="LAA Java Community Technical Guidance" />
+      <meta property="og:title" content="LAA Spring Boot common plugins and starters" />
+      <meta property="og:type" content="object" />
+      <meta property="og:url" content="https://ministryofjustice.github.io/laa-java-community-technical-guidance/java-common.html" />
+
+    
+  </head>
+
+  <body class="govuk-template__body">
+    <script>document.body.className += ' js-enabled' + ('noModule' in HTMLScriptElement.prototype ? ' govuk-frontend-supported' : '');</script>
+
+    <div class="app-pane">
+      
+      <div class="app-pane__header toc-open-disabled">
+        <a href="#content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
+
+        <header class="govuk-header app-header" role="banner" data-module="govuk-header">
+  <div class="govuk-header__container govuk-header__container--full-width">
+    <div class="govuk-header__logo">
+      <a href="./" class="govuk-header__link govuk-header__link--homepage">
+        <span class="govuk-header__product-name">
+          LAA Java Community Technical Guidance
+        </span>
+      </a>
+    </div>
+  </div>
+</header>
+
+      </div>
+
+        <div id="toc-heading" class="toc-show fixedsticky">
+          <button type="button" class="toc-show__label js-toc-show" aria-controls="toc">
+            Table of contents <span class="toc-show__icon"></span>
+          </button>
+        </div>
+
+      <div class="app-pane__body" data-module="in-page-navigation">
+          <div class="app-pane__toc">
+            <div class="toc" data-module="table-of-contents" tabindex="-1">
+              <div class="search" data-module="search" data-path-to-site-root="./">
+  <form action="https://www.google.co.uk/search" method="get" role="search" class="search__form govuk-!-margin-bottom-4">
+    <input type="hidden" name="as_sitesearch" value="https://ministryofjustice.github.io/laa-java-community-technical-guidance"/>
+    <label class="govuk-label search__label" for="search">
+      Search (via Google)
+    </label>
+    <input
+      type="search"
+      id="search" name="q"
+      class="govuk-input govuk-!-margin-bottom-0 search__input"
+      aria-controls="search-results"
+      placeholder="Search">
+    <button type="submit" class="search__button">Search</button>
+  </form>
+</div>
+
+              <button type="button" class="toc__close js-toc-close" aria-controls="toc" aria-label="Hide table of contents"></button>
+              <nav id="toc" class="js-toc-list toc__list" aria-labelledby="toc-heading" data-module="collapsible-navigation">
+                      <ul>
+  <li>
+    <a href="#laa-spring-boot-common-plugins-and-starters"><span>LAA Spring Boot common plugins and starters</span></a>
+    <ul>
+      <li>
+        <a href="#plugins-at-a-glance"><span>Plugins at a glance</span></a>
+        <ul>
+          <li>
+            <a href="#configure-plugin-resolution"><span>Configure plugin resolution</span></a>
+          </li>
+          <li>
+            <a href="#apply-the-plugin"><span>Apply the plugin</span></a>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a href="#starters-available"><span>Starters available</span></a>
+      </li>
+      <li>
+        <a href="#updates"><span>Updates</span></a>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+
+              </nav>
+            </div>
+          </div>
+
+        <div class="app-pane__content toc-open-disabled" aria-label="Content">
+          <main id="content" class="technical-documentation" data-module="anchored-headings">
+            <h1 id="laa-spring-boot-common-plugins-and-starters">LAA Spring Boot common plugins and starters</h1>
+<p>Use the shared plugins and starters from <a href="https://github.com/ministryofjustice/laa-spring-boot-common">https://github.com/ministryofjustice/laa-spring-boot-common</a> to standardise builds across LAA Java services.</p>
+<h2 id="plugins-at-a-glance">Plugins at a glance</h2>
+
+<ul>
+<li><code>uk.gov.laa.java.laa-java-gradle-plugin</code>: Java toolchain, Checkstyle, Jacoco, Versions, Test Logger, Maven Publish, Gradle Release, plus an <code>integrationTest</code> task with verbose logging.</li>
+<li><code>uk.gov.laa.springboot.laa-spring-boot-gradle-plugin</code>: Everything above, plus Spring Boot plugin and dependency management tuned for LAA starters and libraries.</li>
+</ul>
+<h3 id="configure-plugin-resolution">Configure plugin resolution</h3>
+<p>Add the GitHub Packages repo to <code>settings.gradle</code>:</p>
+<div class="highlight"><pre class="highlight groovy" tabindex="0"><code><span class="n">pluginManagement</span> <span class="o">{</span>
+    <span class="n">repositories</span> <span class="o">{</span>
+        <span class="n">maven</span> <span class="o">{</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s2">"gitHubPackages"</span>
+            <span class="n">url</span> <span class="nf">uri</span><span class="o">(</span><span class="s2">"https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common"</span><span class="o">)</span>
+            <span class="n">credentials</span> <span class="o">{</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">getenv</span><span class="o">(</span><span class="s2">"GITHUB_ACTOR"</span><span class="o">)?.</span><span class="na">trim</span><span class="o">()</span> <span class="o">?:</span> <span class="n">settings</span><span class="o">.</span><span class="na">ext</span><span class="o">.</span><span class="na">find</span><span class="o">(</span><span class="s2">"project.ext.gitPackageUser"</span><span class="o">)</span>
+                <span class="n">password</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">getenv</span><span class="o">(</span><span class="s2">"GITHUB_TOKEN"</span><span class="o">)?.</span><span class="na">trim</span><span class="o">()</span> <span class="o">?:</span> <span class="n">settings</span><span class="o">.</span><span class="na">ext</span><span class="o">.</span><span class="na">find</span><span class="o">(</span><span class="s2">"project.ext.gitPackageKey"</span><span class="o">)</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="n">maven</span> <span class="o">{</span> <span class="n">url</span> <span class="s2">"https://plugins.gradle.org/m2/"</span> <span class="o">}</span>
+        <span class="n">gradlePluginPortal</span><span class="o">()</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>Add credentials in <code>~/.gradle/gradle.properties</code> (create a GitHub PAT with <code>repo</code>, <code>read:packages</code>, <code>write:packages</code>, SSO enabled):</p>
+<div class="highlight"><pre class="highlight properties" tabindex="0"><code><span class="py">project.ext.gitPackageUser</span><span class="p">=</span><span class="s">&lt;your GitHub username&gt;</span>
+<span class="py">project.ext.gitPackageKey</span><span class="p">=</span><span class="s">&lt;your GitHub access token&gt;</span>
+</code></pre></div><h3 id="apply-the-plugin">Apply the plugin</h3>
+<div class="highlight"><pre class="highlight groovy" tabindex="0"><code><span class="n">plugins</span> <span class="o">{</span>
+    <span class="n">id</span> <span class="s2">"uk.gov.laa.springboot.laa-spring-boot-gradle-plugin"</span> <span class="n">version</span> <span class="s2">"&lt;latest&gt;"</span> <span class="n">apply</span> <span class="kc">false</span>
+<span class="o">}</span>
+
+<span class="c1">// in subprojects that need it</span>
+<span class="n">apply</span> <span class="nl">plugin:</span> <span class="s2">"uk.gov.laa.springboot.laa-spring-boot-gradle-plugin"</span>
+</code></pre></div><p>Replace <code>&lt;latest&gt;</code> with the latest release from the repository. For single-module projects you can drop <code>apply false</code>.</p>
+<h2 id="starters-available">Starters available</h2>
+
+<ul>
+<li>GOV.UK custom Thymeleaf dialect</li>
+<li>Authentication</li>
+<li>Application exception handling</li>
+<li>Slack alerts</li>
+</ul>
+<p>Use these starters to pull in common behaviour instead of re-implementing it in each service.</p>
+<h2 id="updates">Updates</h2>
+
+<ul>
+<li>Plugin and starter updates are announced in Slack: <code>#laa-developer</code> and <code>#laa-java-devs</code>. Join those channels to keep build tooling current.</li>
+</ul>
+
+            
+          </main>
+
+          <aside>
+              <ul class="contribution-banner">
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance/blob/main/source/java-common.html.md.erb">View source</a></li>
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance/issues/new?body=Problem+with+%27LAA+Spring+Boot+common+plugins+and+starters%27+%28https%3A%2F%2Fministryofjustice.github.io%2Flaa-java-community-technical-guidance%2Fjava-common.html%29&amp;labels=bug&amp;title=Re%3A+%27LAA+Spring+Boot+common+plugins+and+starters%27">Report problem</a></li>
+                <li><a href="https://github.com/ministryofjustice/laa-java-community-technical-guidance">GitHub Repo</a></li>
+              </ul>
+          </aside>
+
+          <footer class="govuk-footer app-footer" role="contentinfo">
+  <div class="govuk-footer__meta">
+    <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
+
+
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        class="govuk-footer__licence-logo"
+        xmlns="http://www.w3.org/2000/svg"
+        viewbox="0 0 483.2 195.7"
+        height="17"
+        width="41"
+      >
+        <path
+          fill="currentColor"
+          d="M421.5 142.8V.1l-50.7 32.3v161.1h112.4v-50.7zm-122.3-9.6A47.12 47.12 0 0 1 221 97.8c0-26 21.1-47.1 47.1-47.1 16.7 0 31.4 8.7 39.7 21.8l42.7-27.2A97.63 97.63 0 0 0 268.1 0c-36.5 0-68.3 20.1-85.1 49.7A98 98 0 0 0 97.8 0C43.9 0 0 43.9 0 97.8s43.9 97.8 97.8 97.8c36.5 0 68.3-20.1 85.1-49.7a97.76 97.76 0 0 0 149.6 25.4l19.4 22.2h3v-87.8h-80l24.3 27.5zM97.8 145c-26 0-47.1-21.1-47.1-47.1s21.1-47.1 47.1-47.1 47.2 21 47.2 47S123.8 145 97.8 145"
+        />
+      </svg>
+      <span class="govuk-footer__licence-description">
+        All content is available under the
+        <a
+          class="govuk-footer__link"
+          href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+          rel="license"
+        >Open Government Licence v3.0</a>, except where otherwise stated
+      </span>
+    </div>
+    <div class="govuk-footer__meta-item">
+      <a
+        class="govuk-footer__link govuk-footer__copyright-logo"
+        href="https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/"
+      >© Crown copyright</a>
+    </div>
+  </div>
+</footer>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <script src="javascripts/govuk_frontend.js" type="module"></script>
+    <script src="javascripts/application.js"></script>
+  </body>
+</html>

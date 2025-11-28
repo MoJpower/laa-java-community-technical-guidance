@@ -1,0 +1,66 @@
+---
+title: LAA Spring Boot common plugins and starters
+---
+
+# <%= current_page.data.title %>
+
+Use the shared plugins and starters from <https://github.com/ministryofjustice/laa-spring-boot-common> to standardise builds across LAA Java services.
+
+## Plugins at a glance
+
+- `uk.gov.laa.java.laa-java-gradle-plugin`: Java toolchain, Checkstyle, Jacoco, Versions, Test Logger, Maven Publish, Gradle Release, plus an `integrationTest` task with verbose logging.
+- `uk.gov.laa.springboot.laa-spring-boot-gradle-plugin`: Everything above, plus Spring Boot plugin and dependency management tuned for LAA starters and libraries.
+
+### Configure plugin resolution
+
+Add the GitHub Packages repo to `settings.gradle`:
+
+```groovy
+pluginManagement {
+    repositories {
+        maven {
+            name = "gitHubPackages"
+            url uri("https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find("project.ext.gitPackageUser")
+                password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find("project.ext.gitPackageKey")
+            }
+        }
+        maven { url "https://plugins.gradle.org/m2/" }
+        gradlePluginPortal()
+    }
+}
+```
+
+Add credentials in `~/.gradle/gradle.properties` (create a GitHub PAT with `repo`, `read:packages`, `write:packages`, SSO enabled):
+
+```properties
+project.ext.gitPackageUser=<your GitHub username>
+project.ext.gitPackageKey=<your GitHub access token>
+```
+
+### Apply the plugin
+
+```groovy
+plugins {
+    id "uk.gov.laa.springboot.laa-spring-boot-gradle-plugin" version "<latest>" apply false
+}
+
+// in subprojects that need it
+apply plugin: "uk.gov.laa.springboot.laa-spring-boot-gradle-plugin"
+```
+
+Replace `<latest>` with the latest release from the repository. For single-module projects you can drop `apply false`.
+
+## Starters available
+
+- GOV.UK custom Thymeleaf dialect
+- Authentication
+- Application exception handling
+- Slack alerts
+
+Use these starters to pull in common behaviour instead of re-implementing it in each service.
+
+## Updates
+
+- Plugin and starter updates are announced in Slack: `#laa-developer` and `#laa-java-devs`. Join those channels to keep build tooling current.

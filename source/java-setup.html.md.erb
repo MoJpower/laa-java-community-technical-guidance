@@ -1,0 +1,110 @@
+---
+title: Get started with Java versions and IntelliJ
+---
+
+# <%= current_page.data.title %>
+
+A quick start for LAA engineers who need to install Java, manage multiple JDKs, and get IntelliJ licensed. The steps assume macOS, which is standard for MoJ laptops.
+
+## Pick a JDK version
+
+- Default to Amazon Corretto latest LTS (currently Java 21) unless the service says otherwise; Corretto is the LAA base in containers (`amazoncorretto:25-alpine`).
+- Java is backward compatible, so prefer the latest LTS unless the service pins an older one.
+- Check the repository for `.sdkmanrc`, `.java-version`, `Dockerfile`, or build files that specify the expected JDK.
+- Keep multiple LTS versions handy if you work across services; we often support both 17 and 21 during migrations.
+
+## Option 1: install via IntelliJ IDEA
+
+1. Download IntelliJ IDEA (Community to start; Ultimate once you have a license): <https://www.jetbrains.com/idea/download/?section=mac>.
+2. Request an Ultimate license in Slack `#laa-digital-business-support` with your MoJ email and laptop hostname; approvals are usually quick.
+3. In IntelliJ, open `File > Project Structure > SDKs > + > Download JDK`, choose vendor **Amazon Corretto** and version **21** (add 17 if needed), then set it as the **Project SDK**.
+4. If you also use jenv, add the downloaded JDK path (see below) so command-line builds match IntelliJ.
+
+## Option 2: install via SDKMAN!
+
+1. Install SDKMAN:
+
+   ```bash
+   curl -s "https://get.sdkman.io" | bash
+   source "$HOME/.sdkman/bin/sdkman-init.sh"
+   ```
+
+2. Install JDKs:
+
+   ```bash
+   sdk list java | grep -i amzn     # note the latest Amazon Corretto IDs (for example 21.0.x-amzn)
+   sdk install java 21.0.x-amzn     # replace x with the latest 21 ID you saw
+   sdk install java 17.0.x-amzn     # also install 17 if you need it
+   ```
+
+3. Set a default:
+
+   ```bash
+   sdk default java 21.0.x-amzn
+   ```
+
+4. Use per-project versions inside a repo that has `.sdkmanrc`:
+
+   ```bash
+   sdk env install
+   sdk env
+   ```
+
+### Manage multiple JDKs with jenv (recommended)
+
+Jenv makes switching versions seamless across shells and build tools, regardless of whether the JDKs came from IntelliJ, SDKMAN, or another installer.
+
+1. Install jenv:
+
+   ```bash
+   brew install jenv
+   ```
+
+2. Add to your shell: append the line below to `~/.zshrc` or `~/.bashrc`, then restart your shell.
+
+   ```bash
+   eval "$(jenv init -)"
+   ```
+
+3. Enable PATH export once:
+
+   ```bash
+   jenv enable-plugin export
+   ```
+
+4. Add the JDKs you installed (adjust paths/versions to match what you installed):
+
+   ```bash
+   jenv add ~/.sdkman/candidates/java/21.0.*/   # Amazon Corretto 21 from SDKMAN
+   jenv add ~/.sdkman/candidates/java/17.0.*/   # Amazon Corretto 17 from SDKMAN
+   jenv add /Library/Java/JavaVirtualMachines/<name>/Contents/Home   # Amazon Corretto downloaded by IntelliJ or another installer
+   ```
+
+5. Pick versions (use the exact versions shown by `jenv versions`):
+
+   ```bash
+   jenv global 21.0.x   # sets your global default
+   jenv local 17.0.x    # writes .java-version in the current project
+   jenv versions        # list what jenv knows about
+   ```
+
+## Verify your setup
+
+- Check the active JDK and where it comes from:
+
+  ```bash
+  java -version
+  jenv which java
+  ```
+
+- Check jenv integration:
+
+  ```bash
+  jenv doctor
+  ```
+
+- Confirm your build uses the expected JDK:
+
+  ```bash
+  ./gradlew --version
+  ```

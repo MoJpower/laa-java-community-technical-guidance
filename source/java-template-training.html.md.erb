@@ -1,0 +1,401 @@
+---
+title: LAA Spring Boot microservice template fundamentals
+---
+
+# <%= current_page.data.title %>
+
+Use this single, detailed learning path to understand and extend the template. Follow the numbered sections in order; each one points to real files and commands you can run right away.
+
+## 1) Multi-module layout and Gradle basics
+
+1. Open `settings.gradle` to see the two modules (`spring-boot-microservice-api`, `spring-boot-microservice-service`) and the plugin management block that pulls the shared Gradle plugin from GitHub Packages.
+2. Open the root `build.gradle` and `gradle.properties` to confirm the shared `group` and `version` that apply to both modules.
+3. Inspect `spring-boot-microservice-service/build.gradle` to see the `uk.gov.laa.springboot.laa-spring-boot-gradle-plugin`, Lombok, MapStruct, Spring starters, H2, and Jacoco configuration.
+4. Inspect `spring-boot-microservice-api/build.gradle` to see the OpenAPI generator wiring, generated source directory addition, and the disabled `bootJar`/`bootRun` tasks.
+5. From the repo root, run:
+
+    ```bash
+    ./gradlew projects
+    ```
+    to verify Gradle sees both modules and their tasks.
+6. Run:
+
+    ```bash
+    ./gradlew tasks --group build
+    ```
+    to view common tasks; note `bootRun`, `bootJar`, `test`, and `integrationTest` come from the shared plugin.
+7. Build everything with:
+
+    ```bash
+    ./gradlew build
+    ```
+    This compiles code, runs unit tests, enforces Checkstyle, and produces coverage reports.
+8. If you only need the runnable jar, run:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-service:bootJar
+    ```
+    and find it in `spring-boot-microservice-service/build/libs/`.
+
+```mermaid
+graph TD
+    A[repo root] --> B[settings.gradle]
+    A --> C[build.gradle]
+    A --> D[gradle.properties]
+    A --> E[spring-boot-microservice-api/]
+    A --> F[spring-boot-microservice-service/]
+    E --> E1[open-api-specification.yml]
+    E --> E2[build.gradle]
+    F --> F1[src/main/resources/application.yml]
+    F --> F2[build.gradle]
+```
+
+## 2) API-first approach
+
+1. Open `spring-boot-microservice-api/open-api-specification.yml` and read the `/api/v1/items` paths to understand the current contract.
+2. Update the YAML when adding or changing endpoints; include required fields and validation keywords (e.g., `minLength`, `maxLength`) so they propagate to generated models.
+3. Regenerate sources with:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-api:openApiGenerate
+    ```
+    (or any build task). Generated interfaces and models land under `spring-boot-microservice-api/generated/src/main/java`.
+4. Note that `sourceSets.main.java.srcDirs += ['generated/src/main/java']` adds generated code to the API module; interfaces like `ItemsApi` and models like `Item` and `ItemRequestBody` come from here.
+5. In the service module, implement the generated interface in your controller (see `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/controller/ItemController.java`) so routing and method signatures stay aligned with the spec.
+6. After changing the spec, regenerate, then update controllers, services, mappers, and tests until the build is green—compilation errors will highlight missing implementations.
+7. To build only the contract, run:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-api:build
+    ```
+    `bootJar` is disabled because the API module is not runnable.
+
+```mermaid
+flowchart LR
+    A[open-api-specification.yml] --> B[openApiGenerate task]
+    B --> C[generated interfaces/models]
+    C --> D[controller implements ItemsApi]
+    D --> E[service + mapper + repository]
+```
+
+## 3) Entry point and configuration
+
+1. Open `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/SpringBootMicroserviceApplication.java` to see the `SpringApplication.run` entry point.
+2. Review `spring-boot-microservice-service/src/main/resources/application.yml` for app metadata, actuator exposure, and the in-memory H2 datasource. Hibernate auto-DDL is disabled via `spring.jpa.hibernate.ddl-auto: none`.
+3. Inspect `spring-boot-microservice-service/src/main/resources/schema.sql` and `data.sql` that create and seed the `ITEMS` table during startup.
+4. Start the app locally with:
+
+    ```bash
+    ./gradlew bootRun
+    ```
+    Spring Boot loads `application.yml` by default.
+5. Override properties via environment variables (e.g., `SPRING_DATASOURCE_URL`) or profile-specific files like `application-local.yml`, then run with the local profile:
+
+    ```bash
+    ./gradlew bootRun --args='--spring.profiles.active=local'
+    ```
+6. Keep secrets out of `application.yml`; prefer environment variables or externalised configuration for credentials and tokens.
+7. If switching databases (e.g., Postgres), update the datasource driver/URL, remove the H2 console, and introduce a migration tool (Flyway or Liquibase) instead of `schema.sql`.
+
+## 4) Layered REST design
+
+1. Read `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/controller/ItemController.java` to see a controller implementing the generated `ItemsApi` interface.
+2. Notice controllers stay thin: logging, status codes, and delegating to services. Avoid embedding business logic in controllers.
+3. Open `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/service/ItemService.java` to see business rules (existence checks, mapping) separated from HTTP concerns.
+4. Inspect `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/repository/ItemRepository.java`, which extends `JpaRepository` for persistence operations.
+5. Check `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/entity/ItemEntity.java` for JPA mappings; persistence annotations belong here, not in controllers or services.
+6. When adding an endpoint: update the OpenAPI spec, regenerate code, implement the controller method, add service logic, and extend the repository if needed.
+7. Express business failures with domain exceptions in the service layer so the global exception handler can return consistent HTTP responses.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant Ctrl as Controller
+    participant S as Service
+    participant R as Repository
+    participant DB as Database
+    C->>Ctrl: HTTP request
+    Ctrl->>S: call service method
+    S->>R: repository query/save
+    R->>DB: SQL
+    DB-->>R: result
+    R-->>S: entity/result
+    S-->>Ctrl: DTO/response info
+    Ctrl-->>C: HTTP response
+```
+
+## 5) DTO and mapping patterns
+
+1. After OpenAPI generation, explore `spring-boot-microservice-api/generated/src/main/java/uk/gov/justice/laa/springboot/microservice/model/` to see DTOs like `Item` and `ItemRequestBody`.
+2. Review `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/mapper/ItemMapper.java`, which uses MapStruct (`@Mapper(componentModel = "spring")`) so Spring can inject the generated implementation.
+3. Keep the annotation processor `org.mapstruct:mapstruct-processor:1.6.3` in `spring-boot-microservice-service/build.gradle`; it generates mappers at compile time.
+4. In services, convert entities to DTOs with the mapper (e.g., `ItemService#getAllItems`) before returning data to controllers—never expose entities directly.
+5. When creating or updating entities from requests, either map the DTO or copy fields, then persist via the repository.
+6. If you add fields to the contract or entity, update the mapper interface; MapStruct will regenerate code and fail the build if mappings are incomplete when stricter policies are enabled.
+7. For non-trivial mappings (enums, nested objects), add helper methods or `@Mapping` annotations to keep transformations declarative and testable.
+
+```mermaid
+flowchart LR
+    A["ItemRequestBody / Item DTOs"] --|MapStruct|--> B["ItemMapper (generated impl)"]
+    B --|toEntity|--> C[ItemEntity]
+    C --|toDto|--> A
+```
+
+## 6) Persistence fundamentals
+
+1. Study `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/entity/ItemEntity.java`: `@Entity`, `@Table("ITEMS")`, identity `@Id`, and simple fields.
+2. Review `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/repository/ItemRepository.java` extending `JpaRepository<ItemEntity, Long>`; add derived queries (e.g., `findByName`) as needed.
+3. Look at `spring-boot-microservice-service/src/main/resources/schema.sql` for table creation and `data.sql` for seed data; Spring runs these at startup because Hibernate auto-DDL is off.
+4. Run:
+
+    ```bash
+    ./gradlew bootRun
+    ```
+    and confirm data loads by hitting endpoints or the H2 console at `/h2-console` (JDBC URL `jdbc:h2:mem:itemsDb`).
+5. For new entities, create the class, add a repository, extend `schema.sql`, and optionally add demo data to `data.sql`.
+6. Use `@Transactional` on services or methods that need atomic updates; integration tests already mark transactions to roll back between tests.
+7. For production, replace H2 with your target database, update datasource settings, and move to Flyway/Liquibase migrations instead of `schema.sql`.
+
+```mermaid
+erDiagram
+    ITEMS {
+        BIGINT id PK
+        VARCHAR name
+        VARCHAR description
+    }
+```
+*(data.sql seeds initial rows into ITEMS for demos)*
+
+## 7) Validation and request handling
+
+1. Required fields in `open-api-specification.yml` (e.g., `name`, `description`) generate Bean Validation annotations on DTOs; missing fields trigger `400 Bad Request` before controller logic runs.
+2. Keep controller method signatures inherited from `ItemsApi`; Spring applies validation annotations on generated models automatically.
+3. Strengthen rules by adding OpenAPI constraints (`minLength`, `maxLength`, patterns). Regenerate sources so Bean Validation annotations stay in sync.
+4. When adding custom validation, annotate controller parameters with `@Valid` and add explicit annotations on DTOs or entities.
+5. Use `@RequestBody` for JSON payloads and path variables/params from the generated interface; avoid manual parsing.
+6. See `spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerTest.java` for MockMvc tests that expect 400 responses when required fields are missing.
+7. Keep production error messages generic; log sensitive details (at debug level) instead of returning them to clients.
+
+```mermaid
+flowchart LR
+    A[HTTP request] --> B[Spring MVC binding]
+    B --> C{Validation OK?}
+    C --No--> D[400 Bad Request auto-response]
+    C --Yes--> E[Controller]
+    E --> F[Service]
+```
+
+## 8) Error handling and logging
+
+1. Check `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/exception/ItemNotFoundException.java` for the domain exception used when an item is missing.
+2. Review `spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/exception/GlobalExceptionHandler.java`, which maps exceptions to HTTP responses (`404` for missing items, `500` for generic errors) and logs unexpected failures.
+3. Throw domain-specific exceptions from services instead of returning null or Optionals so the handler can produce clear status codes.
+4. Use Lombok’s `@Slf4j` logger (as in `ItemController`) to log identifiers and outcomes; avoid logging sensitive payloads.
+5. When adding new exception types, register `@ExceptionHandler` methods in the advice class to control status codes and response bodies.
+6. Choose log levels intentionally: info for lifecycle events, warn for client errors, error for unexpected failures.
+7. Validate error handling via tests like `spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/exception/GlobalExceptionHandlerTest.java` and controller tests asserting 404/500 behaviour.
+
+```mermaid
+flowchart LR
+    A[Service throws ItemNotFoundException] --> B[GlobalExceptionHandler]
+    B --> C[404 Not Found response]
+    A2[Service throws unexpected Exception] --> B
+    B --> D[500 Internal Server Error response + error log]
+```
+
+## 9) API documentation and discovery
+
+1. Confirm the Springdoc dependency exists in `spring-boot-microservice-service/build.gradle` (`org.springdoc:springdoc-openapi-starter-webmvc-ui`).
+2. Start the service with:
+
+    ```bash
+    ./gradlew bootRun
+    ```
+3. Open `http://localhost:8080/swagger-ui/index.html` to explore endpoints defined in `open-api-specification.yml`.
+4. Access the raw OpenAPI JSON at `http://localhost:8080/v3/api-docs` for client generation or contract testing.
+5. After editing the spec and regenerating code, restart the app so Swagger UI and `/v3/api-docs` reflect the changes.
+6. If you later secure the API, configure Springdoc to expose docs appropriately (e.g., require auth headers or restrict roles).
+
+```mermaid
+flowchart TD
+    A[Running service] --> B[/swagger-ui/index.html/]
+    A --> C[/v3/api-docs JSON/]
+    B --> D[Try it out to call Items endpoints]
+    C --> E[Client generation / contract tests]
+```
+
+## 10) Testing strategy
+
+1. Run all tests:
+
+    ```bash
+    ./gradlew test
+    ./gradlew integrationTest
+    ```
+    CI usually runs:
+
+    ```bash
+    ./gradlew build
+    ```
+    which triggers both.
+2. Review unit tests such as `spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/service/ItemServiceTest.java` that mock repositories and mappers.
+3. Inspect controller slice tests in `spring-boot-microservice-service/src/test/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerTest.java`, which use `@WebMvcTest` + MockMvc to verify request mapping, validation, and status codes while mocking services.
+4. Check the integration test `spring-boot-microservice-service/src/integrationTest/java/uk/gov/justice/laa/springboot/microservice/controller/ItemControllerIntegrationTest.java`, which boots Spring with H2 and exercises repository interactions and SQL scripts.
+5. Jacoco is configured in `spring-boot-microservice-service/build.gradle`; the application class is excluded to focus coverage on custom logic.
+6. When adding endpoints or business rules, add unit tests for services/mappers, controller tests for request/response behaviour, and integration tests for persistence changes.
+7. Use generated model builders (`Item.builder()`) or simple test data builders to keep test setup concise and aligned with the contract.
+
+```mermaid
+flowchart TD
+    C[Unit tests\nItemServiceTest, ItemMapperTest] --> B[WebMvcTest slice tests\nItemControllerTest]
+    B --> A[Integration tests\nItemControllerIntegrationTest]
+```
+
+## 11) Build outputs and packaging
+
+1. The API module disables `bootJar`/`bootRun` because it only ships interfaces and models. Build it with:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-api:build
+    ```
+    if you need the contract artifact.
+2. The service module produces the runnable jar; build it with:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-service:bootJar
+    ```
+    or as part of:
+
+    ```bash
+    ./gradlew build
+    ```
+3. Find the output jar in `spring-boot-microservice-service/build/libs/`; this is what the Dockerfile copies into the image.
+4. Code quality tools (Checkstyle, Jacoco, dependency management, test logging, Versions) come from the shared Gradle plugin. Run:
+
+    ```bash
+    ./gradlew check
+    ```
+    to apply them before packaging.
+5. If publishing artifacts, enable Maven Publish or use the plugin defaults and configure a repository target.
+6. When renaming the project or group, update `settings.gradle`, root `build.gradle`, and `gradle.properties` so artifact coordinates stay consistent.
+
+```mermaid
+flowchart LR
+    A[./gradlew build] --> B[bootJar in build/libs/]
+    B --> C[Dockerfile COPY app.jar]
+    C --> D[docker build image]
+    D --> E[docker run -p 8080:8080]
+    D --> F[docker compose up --build]
+```
+
+## 12) Docker basics
+
+1. Build the service jar first:
+
+    ```bash
+    ./gradlew :spring-boot-microservice-service:bootJar
+    ```
+    so the Docker build can copy it.
+2. Open the root `Dockerfile` to see the base JDK image, creation of a non-root user, exposed port `8080`, and the `COPY` of the service jar into `/app`.
+3. Build an image locally from the repo root:
+
+    ```bash
+    docker build -t laa-spring-boot-microservice .
+    ```
+4. Run the container and hit the API:
+
+    ```bash
+    docker run -p 8080:8080 laa-spring-boot-microservice
+    ```
+    then visit `http://localhost:8080/api/v1/items`.
+5. Use:
+
+    ```bash
+    docker compose up --build
+    ```
+    (see `docker-compose.yml`) for quick local orchestration; add other services (e.g., a database) here as your app grows.
+6. If you rename the service module, update the `Dockerfile` jar path and the compose service name/build context accordingly.
+
+## 13) Local runbook
+
+1. Ensure Java (via the Gradle toolchain) is available; install Docker if you plan to containerize locally.
+2. Start the app (uses H2 with `schema.sql`/`data.sql`):
+
+    ```bash
+    ./gradlew bootRun
+    ```
+3. List items (expect five seeded records):
+
+    ```bash
+    curl http://localhost:8080/api/v1/items
+    ```
+4. Fetch one item:
+
+    ```bash
+    curl http://localhost:8080/api/v1/items/1
+    ```
+5. Create an item:
+
+    ```bash
+    curl -i -X POST http://localhost:8080/api/v1/items \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"New Item","description":"Created from curl."}'
+    ```
+6. Update an item:
+
+    ```bash
+    curl -i -X PUT http://localhost:8080/api/v1/items/2 \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"Updated","description":"Updated description."}'
+    ```
+7. Delete an item:
+
+    ```bash
+    curl -i -X DELETE http://localhost:8080/api/v1/items/3
+    ```
+8. Check health:
+
+    ```bash
+    curl http://localhost:8080/actuator/health
+    ```
+9. Explore docs at `http://localhost:8080/swagger-ui/index.html`; inspect the DB via `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:itemsDb`).
+
+```mermaid
+flowchart TD
+    A[bootRun] --> B["GET /api/v1/items → 200 (5 items)"]
+    A --> C["GET /api/v1/items/1 → 200 item"]
+    A --> D["POST /api/v1/items → 201 + Location header"]
+    A --> E["PUT /api/v1/items/{id} → 204"]
+    A --> F["DELETE /api/v1/items/{id} → 204"]
+    A --> G["GET /actuator/health → 200 UP"]
+```
+
+## 14) Code style and annotations
+
+1. Review `config/checkstyle/checkstyle.xml` (Google Java Style). Generated sources are excluded from Checkstyle in the API module (`checkstyleMain.exclude "*"`) to avoid noise.
+2. Run one of:
+
+    ```bash
+    ./gradlew checkstyleMain checkstyleTest
+    ```
+    or:
+
+    ```bash
+    ./gradlew check
+    ```
+    to catch style issues early.
+3. Lombok is used throughout: `@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor` on entities/DTOs and `@RequiredArgsConstructor` + `@Slf4j` on services/controllers. Prefer constructor injection over field injection.
+4. Keep annotations layer-specific: HTTP annotations in controllers, validation on DTOs/entities, JPA on entities, and `@Transactional` on service methods where needed.
+5. If you drop Lombok, add explicit getters/setters/builders to keep serialization and tests working.
+6. Maintain consistent package names (`uk.gov.justice.laa.springboot.microservice` by default) to align with `build.gradle`/`gradle.properties`.
+
+## 15) Next steps for customisation
+
+1. Rename modules in `settings.gradle` from `spring-boot-microservice-*` to your app name (e.g., `{app}-api`, `{app}-service`) and update the root `build.gradle` `group`.
+2. Change package declarations under `spring-boot-microservice-service/src/main/java`, `src/test/java`, and `src/integrationTest/java` from `uk.gov.justice.laa.springboot.microservice` to your namespace; adjust imports accordingly.
+3. Replace `spring-boot-microservice-api/open-api-specification.yml` with your real contract, regenerate code, and implement the new interfaces in controllers.
+4. Update `spring-boot-microservice-service/src/main/resources/application.yml` values (`spring.application.name`, `info.app.*`) and remove demo `schema.sql`/`data.sql` once you migrate to real databases.
+5. Swap H2 for your target database, configure the datasource, and add Flyway/Liquibase migrations.
+6. Adjust the `Dockerfile` jar path and `docker-compose.yml` service names after renaming modules.
+7. Review any CI workflow paths (if added) that reference `spring-boot-microservice-service/build/` and update them to the new module name.
+8. Layer on security, observability, and production configs (Spring Security, centralized logging/metrics) after the fundamentals are stable.
