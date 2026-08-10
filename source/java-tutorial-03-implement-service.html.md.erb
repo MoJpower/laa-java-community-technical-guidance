@@ -1,0 +1,288 @@
+---
+title: "Tutorial 3: Implement the books service"
+---
+
+# <%= current_page.data.title %>
+
+Implement the generated `BooksApi` boundary with a thin controller, application service,
+MapStruct mapper, internal entity, and predictable error handling.
+
+## Outcome
+
+The public API can create, retrieve, and list books in memory. This deliberately temporary storage
+keeps the first application slice focused; Tutorial 4 replaces it with PostgreSQL.
+
+## Prerequisites
+
+- Complete [Tutorial 2](java-tutorial-02-design-api.html)
+- Generate the API and confirm the service module compiles
+
+## Fast track
+
+1. Add packages for `controller`, `service`, `mapper`, `entity`, and `exception`.
+2. Implement `BooksApi` in a controller that delegates to a constructor-injected service.
+3. Keep generated API models separate from an internal `BookEntity` and map with MapStruct.
+4. Store books temporarily in a thread-safe map and assign IDs in the service.
+5. Translate `BookNotFoundException` and validation failures to `ErrorResponse`.
+6. Compile, start the service, and exercise all three operations.
+
+## Create the implementation files
+
+Create the package directories under
+`laa-spring-boot-library-tutorial-service/src/main/java/uk/gov/justice/laa/library/tutorial`.
+Add `entity/BookEntity.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookEntity {
+  private Long id;
+  private String title;
+  private Integer publicationYear;
+  private String isbn;
+}
+```
+
+Add `mapper/BookMapper.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.mapper;
+
+import java.util.List;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import uk.gov.justice.laa.library.tutorial.entity.BookEntity;
+import uk.gov.justice.laa.library.tutorial.model.Book;
+import uk.gov.justice.laa.library.tutorial.model.CreateBookRequest;
+
+@Mapper(componentModel = "spring")
+public interface BookMapper {
+  @Mapping(target = "id", ignore = true)
+  BookEntity toEntity(CreateBookRequest request);
+  Book toApi(BookEntity entity);
+  List<Book> toApi(List<BookEntity> entities);
+}
+```
+
+Add `service/BookService.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.service;
+
+import java.util.Comparator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.library.tutorial.entity.BookEntity;
+import uk.gov.justice.laa.library.tutorial.exception.BookNotFoundException;
+import uk.gov.justice.laa.library.tutorial.mapper.BookMapper;
+import uk.gov.justice.laa.library.tutorial.model.Book;
+import uk.gov.justice.laa.library.tutorial.model.BookList;
+import uk.gov.justice.laa.library.tutorial.model.CreateBookRequest;
+
+@Service
+public class BookService {
+  private final Map<Long, BookEntity> books = new ConcurrentHashMap<>();
+  private final AtomicLong nextId = new AtomicLong();
+  private final BookMapper mapper;
+
+  public BookService(BookMapper mapper) {
+    this.mapper = mapper;
+  }
+
+  public Book create(CreateBookRequest request) {
+    BookEntity entity = mapper.toEntity(request);
+    entity.setId(nextId.incrementAndGet());
+    books.put(entity.getId(), entity);
+    return mapper.toApi(entity);
+  }
+
+  public Book get(Long id) {
+    BookEntity entity = books.get(id);
+    if (entity == null) throw new BookNotFoundException(id);
+    return mapper.toApi(entity);
+  }
+
+  public BookList list(int limit) {
+    var selected = books.values().stream()
+        .sorted(Comparator.comparing(BookEntity::getId))
+        .limit(limit)
+        .toList();
+    return new BookList(mapper.toApi(selected), limit);
+  }
+}
+```
+
+Add `controller/BookController.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+import uk.gov.justice.laa.library.tutorial.api.BooksApi;
+import uk.gov.justice.laa.library.tutorial.model.Book;
+import uk.gov.justice.laa.library.tutorial.model.BookList;
+import uk.gov.justice.laa.library.tutorial.model.CreateBookRequest;
+import uk.gov.justice.laa.library.tutorial.service.BookService;
+
+@RestController
+public class BookController implements BooksApi {
+  private final BookService service;
+
+  public BookController(BookService service) {
+    this.service = service;
+  }
+
+  public ResponseEntity<Book> createBook(CreateBookRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+  }
+  public ResponseEntity<Book> getBook(Long id) {
+    return ResponseEntity.ok(service.get(id));
+  }
+  public ResponseEntity<BookList> listBooks(Integer limit) {
+    return ResponseEntity.ok(service.list(limit));
+  }
+}
+```
+
+Add `exception/BookNotFoundException.java` and
+`exception/GlobalExceptionHandler.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.exception;
+
+public class BookNotFoundException extends RuntimeException {
+  public BookNotFoundException(Long id) {
+    super("Book %d was not found".formatted(id));
+  }
+}
+```
+
+```java
+package uk.gov.justice.laa.library.tutorial.exception;
+
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import uk.gov.justice.laa.library.tutorial.model.ErrorResponse;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+  @ExceptionHandler(BookNotFoundException.class)
+  ResponseEntity<ErrorResponse> notFound(BookNotFoundException exception) {
+    return response(HttpStatus.NOT_FOUND, "BOOK_NOT_FOUND", exception.getMessage());
+  }
+
+  @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
+  ResponseEntity<ErrorResponse> invalid(Exception exception) {
+    return response(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "Request validation failed");
+  }
+
+  private ResponseEntity<ErrorResponse> response(HttpStatus status, String code, String message) {
+    return ResponseEntity.status(status).body(new ErrorResponse(status.value(), code, message));
+  }
+}
+```
+
+Compile before adding tests. `./gradlew :laa-spring-boot-library-tutorial-service:compileJava`
+should end with `BUILD SUCCESSFUL`. Fix package names and generated method signatures before moving
+on; do not change generated files to silence a mismatch.
+
+## Follow the request through the packages
+
+The generated interface owns routes and signatures. The
+`BookController`
+implements it, chooses HTTP status codes, and delegates. The
+`BookService`
+assigns IDs and owns create, lookup, and bounding rules. Constructor injection makes its dependency
+visible and lets tests supply the mapper directly.
+
+`BookEntity` is an application representation rather than an OpenAPI type. Keeping it separate
+prevents public contract changes from silently becoming storage changes. The
+`BookMapper`
+declares transformations; MapStruct generates type-safe mapping code during compilation. Ignore
+the server-assigned ID when converting a create request.
+
+`BookNotFoundException` describes a domain failure without mentioning HTTP. A
+`@RestControllerAdvice` translates it into status `404`, code `BOOK_NOT_FOUND`, and a useful
+message. It translates validation failures to the same stable error shape.
+
+## Beginner primer: keep boundaries narrow
+
+A controller is an adapter between HTTP and application behaviour. It should not allocate IDs,
+query storage, or map fields. A service coordinates application rules without constructing HTTP
+responses. A mapper moves data between representations. An entity represents internal state.
+Small package responsibilities make failures easier to locate and later storage changes easier.
+
+Generated Java remains read-only. Implement the generated interface in maintained source rather
+than copying its annotations or editing it. Compilation then reports contract drift immediately.
+
+## Build the implementation
+
+```bash
+./gradlew clean build
+```
+
+Expect `BUILD SUCCESSFUL`. Tutorial 5 adds focused mapper, service, MVC, repository, and public-API
+tests after the persistence boundary is in place. For now, the HTTP calls below verify the complete
+in-memory slice.
+
+## Verify through HTTP
+
+For this in-memory stage, disable Flyway and datasource auto-configuration when starting the
+in-memory slice:
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-service:bootRun \
+  --args='--spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration'
+```
+
+In another terminal:
+
+```bash
+curl -i -X POST http://localhost:8081/api/v1/books \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Kindred","publicationYear":1979,"isbn":"9780807083697"}'
+curl -i http://localhost:8081/api/v1/books/1
+curl -i 'http://localhost:8081/api/v1/books?limit=1'
+curl -i http://localhost:8081/api/v1/books/999
+```
+
+Observe `201`, `200`, a bounded list, and a machine-readable `404` respectively.
+
+## Ruby and Python orientation
+
+This is orientation, not equivalence. The controller/service split resembles keeping Rails or
+Django/FastAPI route handlers thin. MapStruct has some of the boundary role of serializers, but
+it generates compile-time Java mapping rather than performing dynamic runtime conversion.
+
+## Challenge: update mapping
+
+Add an update method to `BookMapper` that maps a request onto an existing entity. Use
+`@MappingTarget`, ensure it cannot replace the server-assigned ID, and write a mapper test proving
+all editable fields change while the ID remains stable. This challenge does not add a public PUT
+operation yet.
+
+
+## Further reading
+
+- [Spring dependency injection](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html)
+- [Spring annotated controllers](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller.html)
+- [Spring MVC exception handling](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-exceptionhandler.html)
+- [MapStruct reference guide](https://mapstruct.org/documentation/stable/reference/html/)
+- [Bean Validation](https://jakarta.ee/specifications/bean-validation/)

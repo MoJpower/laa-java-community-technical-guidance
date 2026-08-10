@@ -1,0 +1,176 @@
+---
+title: "Tutorial 1: Create and understand the service"
+---
+
+# <%= current_page.data.title %>
+
+Create the library tutorial from the LAA Spring Boot template, configure PostgreSQL, understand
+the generated structure, and finish with a passing Java 25 build.
+
+## Outcome
+
+You will have a two-module service named `laa-spring-boot-library-tutorial`, using package
+`uk.gov.justice.laa.library.tutorial`, with PostgreSQL and Flyway configured by the template
+initialiser. You will verify the structure and build before changing application metadata.
+
+## Prerequisites
+
+- Amazon Corretto Java 25, verified with `java -version`
+- Git, Python 3.9 or later, and Docker
+- Access to [the LAA Spring Boot microservice template](https://github.com/ministryofjustice/laa-spring-boot-microservice-template)
+
+## Fast track
+
+Experienced Java developers can follow these steps and use the primers below only when needed:
+
+1. Create a repository from the GitHub template and clone your new repository.
+2. Run the initialiser with the identity in this tutorial, first with `--dry-run` and then without it.
+3. Inspect `settings.gradle`, both module build files, and the package tree.
+4. Run `./gradlew projects`, `./gradlew tasks --group build`, and `./gradlew clean build`.
+5. Add the application metadata shown below and verify it through HTTP.
+
+## Create and clone the repository
+
+1. Open the template and select **Use this template**, then **Create a new repository**.
+2. Set **Owner** to your personal GitHub account, not the Ministry of Justice organisation. This
+   keeps the training exercise in a space where you can create, change, and remove it yourself.
+3. Name the repository `laa-spring-boot-library-tutorial`.
+4. Clone your repository and enter it, replacing `<your-github-username>` with your username:
+
+   ```bash
+   git clone git@github.com:<your-github-username>/laa-spring-boot-library-tutorial.git
+   cd laa-spring-boot-library-tutorial
+   ```
+
+Creating a repository from the template preserves normal Git history and team settings. Do not
+clone the template repository and continue developing on its branch. GitHub repository names must
+be unique within an account, so delete or rename an earlier training repository before repeating
+the tutorial with the canonical name.
+
+## Preview and apply initialisation
+
+Preview the exact changes before writing them:
+
+```bash
+python3 initialise-service.py laa-spring-boot-library-tutorial \
+  --package-suffix library.tutorial \
+  --class-prefix LibraryTutorial \
+  --dry-run
+```
+
+Accept the default version and ports, choose **no** when asked to delete the initialiser, choose
+**yes** for PostgreSQL, review the summary, and confirm it. Repeat the command without
+`--dry-run`, using the same answers, to apply the changes.
+
+The initialiser creates these identities:
+
+| Purpose | Name |
+| --- | --- |
+| Root project | `laa-spring-boot-library-tutorial` |
+| API module | `laa-spring-boot-library-tutorial-api` |
+| Service module | `laa-spring-boot-library-tutorial-service` |
+| Java package | `uk.gov.justice.laa.library.tutorial` |
+| Application class | `LibraryTutorialApplication` |
+
+## Beginner primer: Gradle and the wrapper
+
+Gradle turns source and configuration into tested build outputs. Use the committed `./gradlew`
+wrapper rather than a separately installed Gradle version: the wrapper pins the Gradle
+distribution expected by the repository.
+
+The root `settings.gradle` names the build and includes both modules. The root `build.gradle`
+holds shared configuration. Each module has its own `build.gradle`:
+
+- the **API module** maintains the OpenAPI contract and generates Java interfaces and models;
+- the **service module** is the runnable Spring Boot application and depends on the API module.
+
+The shared `uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin` configures the Java 25
+toolchain and common build quality tasks. Do not replace it with local task configuration merely
+to make one workstation build.
+
+## Beginner primer: source areas and packages
+
+Gradle source sets separate production code from tests:
+
+- `src/main/java` contains maintained application code;
+- `src/main/resources` contains runtime configuration and Flyway migrations;
+- `src/test/java` contains focused tests;
+- `src/integrationTest/java` contains integration tests;
+- `generated/` and `build/` contain reproducible output and are not manually maintained.
+
+Java package directories mirror `uk.gov.justice.laa.library.tutorial`. Packages group related
+types and prevent naming collisions; modules define the larger build and dependency boundary.
+
+## Inspect and build
+
+```bash
+./gradlew --version
+./gradlew javaToolchains
+./gradlew projects
+./gradlew tasks --group build
+./gradlew clean build
+```
+
+Confirm that Gradle discovers Java 25, lists the API and service modules, and ends with
+`BUILD SUCCESSFUL`. The build generates the OpenAPI sources, compiles both modules, runs the
+automated checks, and creates build output under each module.
+
+## Ruby and Python orientation
+
+This comparison is for orientation, not exact equivalence. The Gradle wrapper plays a similar
+reproducibility role to a pinned Bundler or Poetry toolchain. Gradle modules are explicit build
+boundaries rather than Rails engines or Python packages, and Java package names are namespaces,
+not dependency declarations.
+
+## Add and verify application metadata
+
+Open
+`laa-spring-boot-library-tutorial-service/src/main/resources/application.yml`. Keep the generated
+datasource settings and add or merge these keys (YAML indentation is significant):
+
+```yaml
+spring:
+  application:
+    name: laa-spring-boot-library-tutorial
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+info:
+  app:
+    name: LAA Library Tutorial
+    version: 0.0.1-SNAPSHOT
+    description: A training service for cataloguing books
+```
+
+Run the build, start PostgreSQL, and start the service:
+
+```bash
+./gradlew clean build
+docker compose up -d postgres
+./gradlew :laa-spring-boot-library-tutorial-service:bootRun
+```
+
+In another terminal:
+
+```bash
+curl -s http://localhost:8181/actuator/health
+curl -s http://localhost:8181/actuator/info
+```
+
+Expect health status `UP` and an `app` object containing the three metadata values. If the service
+cannot connect to PostgreSQL, run `docker compose ps` and compare the datasource port in
+`application.yml` with the published database port. Stop with `Ctrl+C`, then run
+`docker compose down`.
+
+
+## Further reading
+
+- [Creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
+- [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html)
+- [Gradle multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
+- [Java toolchains for JVM projects](https://docs.gradle.org/current/userguide/toolchains.html)
+- [Spring Boot Actuator endpoints](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html)

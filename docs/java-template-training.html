@@ -173,7 +173,7 @@
 <li>Regenerate sources with <code>./gradlew :spring-boot-microservice-api:openApiGenerate</code> (or any build task). Generated interfaces and models land under <code>spring-boot-microservice-api/generated/src/main/java</code>.</li>
 <li>Note that <code>sourceSets.main.java.srcDirs += [&#39;generated/src/main/java&#39;]</code> adds generated code to the API module; interfaces like <code>ItemsApi</code> and models like <code>Item</code> and <code>ItemRequestBody</code> come from here.</li>
 <li>In the service module, implement the generated interface in your controller (see <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/controller/ItemController.java</code>) so routing and method signatures stay aligned with the spec.</li>
-<li>After changing the spec, regenerate, then update controllers, services, mappers, and tests until the build is green—compilation errors will highlight missing implementations.</li>
+<li>After changing the spec, regenerate, then update controllers, services, mappers, and tests until the build is green-compilation errors will highlight missing implementations.</li>
 <li>To build only the contract, run <code>./gradlew :spring-boot-microservice-api:build</code>; <code>bootJar</code> is disabled because the API module is not runnable.</li>
 </ol>
 <div class="highlight"><pre class="highlight plaintext" tabindex="0"><code>flowchart LR
@@ -223,7 +223,7 @@
 <li>After OpenAPI generation, explore <code>spring-boot-microservice-api/generated/src/main/java/uk/gov/justice/laa/springboot/microservice/model/</code> to see DTOs like <code>Item</code> and <code>ItemRequestBody</code>.</li>
 <li>Review <code>spring-boot-microservice-service/src/main/java/uk/gov/justice/laa/springboot/microservice/mapper/ItemMapper.java</code>, which uses MapStruct (<code>@Mapper(componentModel = &quot;spring&quot;)</code>) so Spring can inject the generated implementation.</li>
 <li>Keep the annotation processor <code>org.mapstruct:mapstruct-processor:1.6.3</code> in <code>spring-boot-microservice-service/build.gradle</code>; it generates mappers at compile time.</li>
-<li>In services, convert entities to DTOs with the mapper (e.g., <code>ItemService#getAllItems</code>) before returning data to controllers—never expose entities directly.</li>
+<li>In services, convert entities to DTOs with the mapper (e.g., <code>ItemService#getAllItems</code>) before returning data to controllers-never expose entities directly.</li>
 <li>When creating or updating entities from requests, either map the DTO or copy fields, then persist via the repository.</li>
 <li>If you add fields to the contract or entity, update the mapper interface; MapStruct will regenerate code and fail the build if mappings are incomplete when stricter policies are enabled.</li>
 <li>For non-trivial mappings (enums, nested objects), add helper methods or <code>@Mapping</code> annotations to keep transformations declarative and testable.</li>

@@ -4,34 +4,49 @@ title: Java tutorials and training
 
 # <%= current_page.data.title %>
 
-Curated starter material to help new LAA engineers ramp up with Java and Spring. Pair this with the Java setup guide to ensure you are using the expected JDK.
+Follow the tutorials in order to turn a fresh LAA Spring Boot template into a library catalogue
+service. Each lesson has a beginner route, an experienced-developer fast track, copyable code,
+verification commands, and a challenge. Both routes produce the same result.
 
-## Quick guided tutorials
+## Before you start
 
-- Official Spring guides: <https://spring.io/guides> — short, focused walkthroughs (REST, data, security, messaging).
-- Baeldung Spring Boot tutorial: <https://www.baeldung.com/spring-boot> — longer form with background, starter projects, and testing examples.
+Use Amazon Corretto Java 25 as described in the [Java setup guide](java-setup.html). You also need
+Git, Python 3.9 or later, Docker, and access to the
+[LAA Spring Boot microservice template](https://github.com/ministryofjustice/laa-spring-boot-microservice-template).
 
-## Hands-on courses (licenced platforms)
+## Learning path
 
-Request access in Slack `#licenced-offerings-skillsoft-pluralsight-oreilly-linkedinlearning`. Each platform has beginner Java tracks and Spring Boot fundamentals:
+1. [Create and understand the service](java-tutorial-01-create-service.html) - initialise the
+   template with PostgreSQL, explore its Gradle modules and packages, and produce a passing build.
+2. [Design and generate the books API](java-tutorial-02-design-api.html) - define an OpenAPI
+   contract, generate Spring interfaces and models, and use compilation as feedback.
+3. [Implement the books service](java-tutorial-03-implement-service.html) - connect the generated
+   interface to a thin controller, service, mapper, internal entity, and stable errors.
+4. [Persist books and authors](java-tutorial-04-persist-data.html) - replace memory storage with
+   PostgreSQL, related JPA entities, repositories, transactions, and Flyway migrations.
+5. [Test the service deliberately](java-tutorial-05-test-service.html) - choose focused unit, MVC,
+   repository, and PostgreSQL Testcontainers seams without duplicating assertions.
+6. [Evolve the API safely](java-tutorial-06-evolve-api.html) - add pagination, filtering, an
+   immutable schema migration, and stable conflicts while preserving existing clients.
 
-- O’Reilly: Java fundamentals, modern Java (streams/records), Spring Boot fundamentals, testing with JUnit/Mockito.
-- Pluralsight: Java language path, Spring Boot fundamentals, Spring Data JPA, REST APIs.
-- Skillsoft: Core Java programming, Java best practices, Spring Boot microservices.
-- LinkedIn Learning: Java essential training, Java concurrency, Spring Boot: building APIs.
+The tutorials stop before deployment; use the wider guidance for security, observability,
+containers, and platform concerns.
 
-## Suggested learning path
+## How to use the tutorials
 
-- Start with a Spring guide (REST + data) and run it locally using the Corretto LTS JDK recommended in our setup guide.
-- Follow a short course on one platform above to deepen language fundamentals (collections, streams, concurrency, testing).
-- Build a small API using Spring Boot with controller, service, repository layers, Flyway migrations, and integration tests.
-- Add observability basics: health checks, metrics, and structured logging; then containerise with a `Dockerfile` using the `amazoncorretto:25-alpine` base to mirror LAA defaults.
-- Clone the LAA template and practice end-to-end: <https://github.com/ministryofjustice/laa-spring-boot-microservice-template>
-- Walk through the template internals with the [Microservice template fundamentals training](java-template-training.html) to learn the build, API-first flow, layers, testing, and packaging.
+Complete the lessons in order. Every required change is shown on the page with its file path,
+code, command, and expected result. The companion example is useful for exploration, but is not a
+substitute for a tutorial step and does not require per-lesson branches or tags.
 
-  ```bash
-  git clone https://github.com/ministryofjustice/laa-spring-boot-microservice-template.git
-  cd laa-spring-boot-microservice-template
-  ./gradlew clean build
-  ./gradlew bootRun
-  ```
+Ruby and Python comparisons are short orientation notes, not claims that their frameworks behave
+exactly like Spring or Gradle.
+
+## Additional learning
+
+- [Understand the microservice template](java-template-training.html) - use a concise orientation
+  and change-location reference without repeating the tutorial.
+- [Catalogue of real LAA Java examples](java-examples-catalogue.html) - find evidenced examples of
+  shared plugins and starters, databases, Flyway, JPA, and mapping approaches.
+- [Official Spring guides](https://spring.io/guides)
+- Ask in Slack `#licenced-offerings-skillsoft-pluralsight-oreilly-linkedinlearning` for access to
+  O'Reilly, Pluralsight, Skillsoft, and LinkedIn Learning courses.
