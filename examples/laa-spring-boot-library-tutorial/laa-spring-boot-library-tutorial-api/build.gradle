@@ -1,0 +1,51 @@
+plugins {
+    id 'org.openapi.generator'
+    id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.10'
+}
+
+sourceSets.main.java.srcDirs += ['generated/src/main/java']
+
+checkstyleMain.exclude "*"
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$rootDir/laa-spring-boot-library-tutorial-api/open-api-specification.yml".toString()
+    outputDir = "$rootDir/laa-spring-boot-library-tutorial-api/generated".toString()
+    apiPackage = "uk.gov.justice.laa.library.tutorial.api"
+    invokerPackage = "uk.gov.justice.laa.library.tutorial.invoker"
+    modelPackage = "uk.gov.justice.laa.library.tutorial.model"
+    configOptions = [
+            generateBuilders    : "true",
+            interfaceOnly       : "true", // This will only generate interfaces, not implementations
+            serializableModel   : "true",
+            skipDefaultInterface: "true",
+            useJakartaEe        : "true",
+            useSpringBoot4      : "true",
+            useTags             : "true",
+    ]
+}
+
+compileJava.dependsOn 'openApiGenerate'
+
+clean {
+    delete "$rootDir/laa-spring-boot-library-tutorial-api/generated"
+}
+
+// disable for overall project when running a build
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('bootRun') {
+    enabled = false
+}

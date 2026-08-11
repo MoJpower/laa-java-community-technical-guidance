@@ -26,7 +26,7 @@ Start new Java services from the LAA template repository: <https://github.com/mi
    - Replace `uk.gov.laa.springboot.microservice.*` with `uk.gov.laa.<your-app>.*`.
    - Remove demo SQL scripts in `src/main/resources`; they are examples only.
 5. Check container defaults:
-   - Use `amazoncorretto:25-alpine` (or the current Corretto LTS) as the base image.
+   - Use `amazoncorretto:25-alpine` as the base image.
 
 ## Build and run locally
 
@@ -45,6 +45,6 @@ docker compose up              # run via Docker
 
 ## Notes and cautions
 
-- H2 and example SQL scripts are for demos only—remove before production.
+- H2 and example SQL scripts are for demos only-remove before production.
 - Keep the Gradle plugin version aligned with [laa-spring-boot-common](java-common.html) releases; check its changelog for updates.
-- Prefer Amazon Corretto LTS JDKs to match LAA build and runtime environments.
+- Use Amazon Corretto Java 25 to match the LAA build toolchain and runtime environment.

@@ -8,16 +8,16 @@ A quick start for LAA engineers who need to install Java, manage multiple JDKs, 
 
 ## Pick a JDK version
 
-- Default to Amazon Corretto latest LTS (currently Java 21) unless the service says otherwise; Corretto is the LAA base in containers (`amazoncorretto:25-alpine`).
-- Java is backward compatible, so prefer the latest LTS unless the service pins an older one.
-- Check the repository for `.sdkmanrc`, `.java-version`, `Dockerfile`, or build files that specify the expected JDK.
-- Keep multiple LTS versions handy if you work across services; we often support both 17 and 21 during migrations.
+- Use **Amazon Corretto Java 25** for new LAA Java services and as the target for active upgrades.
+- Treat the Java toolchain declared by the shared LAA Gradle plugin as authoritative. Repository files such as `.sdkmanrc`, `.java-version`, `Dockerfile`, and Gradle build files should agree with it.
+- Java 17 and Java 21 are supported here only for maintaining or migrating services that still use them. Follow the repository's declared version until that service is upgraded.
+- Keep older JDKs installed if you maintain services on Java 17 or 21, but do not use them as the default for new services.
 
 ## Option 1: install via IntelliJ IDEA
 
 1. Download IntelliJ IDEA (Community to start; Ultimate once you have a license): <https://www.jetbrains.com/idea/download/?section=mac>.
 2. Request an Ultimate license in Slack `#laa-digital-business-support` with your MoJ email and laptop hostname; approvals are usually quick.
-3. In IntelliJ, open `File > Project Structure > SDKs > + > Download JDK`, choose vendor **Amazon Corretto** and version **21** (add 17 if needed), then set it as the **Project SDK**.
+3. In IntelliJ, open `File > Project Structure > SDKs > + > Download JDK`, choose vendor **Amazon Corretto** and version **25**, then set it as the **Project SDK**.
 4. If you also use jenv, add the downloaded JDK path (see below) so command-line builds match IntelliJ.
 
 ## Option 2: install via SDKMAN!
@@ -32,15 +32,14 @@ A quick start for LAA engineers who need to install Java, manage multiple JDKs, 
 2. Install JDKs:
 
    ```bash
-   sdk list java | grep -i amzn     # note the latest Amazon Corretto IDs (for example 21.0.x-amzn)
-   sdk install java 21.0.x-amzn     # replace x with the latest 21 ID you saw
-   sdk install java 17.0.x-amzn     # also install 17 if you need it
+   sdk list java | grep -i amzn     # note the latest Amazon Corretto 25 ID
+   sdk install java 25.0.x-amzn     # replace x with the latest 25 ID you saw
    ```
 
 3. Set a default:
 
    ```bash
-   sdk default java 21.0.x-amzn
+   sdk default java 25.0.x-amzn
    ```
 
 4. Use per-project versions inside a repo that has `.sdkmanrc`:
@@ -75,16 +74,15 @@ Jenv makes switching versions seamless across shells and build tools, regardless
 4. Add the JDKs you installed (adjust paths/versions to match what you installed):
 
    ```bash
-   jenv add ~/.sdkman/candidates/java/21.0.*/   # Amazon Corretto 21 from SDKMAN
-   jenv add ~/.sdkman/candidates/java/17.0.*/   # Amazon Corretto 17 from SDKMAN
+   jenv add ~/.sdkman/candidates/java/25.0.*/   # Amazon Corretto 25 from SDKMAN
    jenv add /Library/Java/JavaVirtualMachines/<name>/Contents/Home   # Amazon Corretto downloaded by IntelliJ or another installer
    ```
 
 5. Pick versions (use the exact versions shown by `jenv versions`):
 
    ```bash
-   jenv global 21.0.x   # sets your global default
-   jenv local 17.0.x    # writes .java-version in the current project
+   jenv global 25.0.x   # sets your global default
+   jenv local 25.0.x    # writes .java-version in the current project
    jenv versions        # list what jenv knows about
    ```
 
@@ -107,4 +105,22 @@ Jenv makes switching versions seamless across shells and build tools, regardless
 
   ```bash
   ./gradlew --version
+  ./gradlew javaToolchains
+  ./gradlew compileJava --info
   ```
+
+  `./gradlew --version` reports the JVM running Gradle, while `javaToolchains` reports the JDKs Gradle can select. In the `compileJava --info` output, confirm that `Compiling with toolchain` identifies a Java 25 installation. Changing the shell or IntelliJ JDK alone does not change the service's declared toolchain.
+
+## Upgrade an existing Java 17 or 21 service
+
+Plan and review a Java upgrade as a service change, not only a workstation change:
+
+1. **Repository declarations:** find every declared Java version, including the shared LAA Gradle plugin, Gradle toolchain, `.sdkmanrc`, `.java-version`, `Dockerfile`, Docker Compose files, and developer documentation. Make Java 25 consistent across them.
+2. **Gradle and Spring:** update the Gradle wrapper and Spring Boot only where their compatibility documentation requires it. Use a released shared LAA plugin version that declares a Java 25 toolchain rather than overriding the toolchain locally.
+3. **CI:** update build matrices, setup actions, caches, and any static-analysis or release jobs to use Corretto 25. Run the same Gradle tasks in CI that protect the service today.
+4. **Runtime images:** move build and runtime container stages to the approved Amazon Corretto 25 images. Rebuild images rather than assuming Java's runtime compatibility.
+5. **Dependencies and plugins:** review libraries, annotation processors, Gradle plugins, agents, and test tools for Java 25 support. Upgrade incompatible components deliberately and review dependency and vulnerability reports.
+6. **Tests:** run unit, integration, contract, migration, and end-to-end tests. Exercise startup, shutdown, database migrations, serialization, reflection, and external integrations because these commonly expose runtime differences.
+7. **Rollout:** deploy through the normal environments, using a canary or incremental rollout where the platform supports it. Keep application and infrastructure changes small enough to diagnose and reverse.
+8. **Observe:** compare startup time, health checks, errors, latency, memory, CPU, garbage collection, and downstream behaviour with the pre-upgrade baseline.
+9. **Rollback:** before production deployment, record the last known-good application and Java 17 or 21 image versions and confirm how to redeploy them. Do not combine irreversible data changes with the Java rollout unless they have their own tested rollback or roll-forward plan.

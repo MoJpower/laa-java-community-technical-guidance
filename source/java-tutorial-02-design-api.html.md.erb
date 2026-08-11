@@ -1,0 +1,242 @@
+---
+title: "Tutorial 2: Design and generate the books API"
+---
+
+# <%= current_page.data.title %>
+
+Define the library's HTTP contract before writing its Spring implementation, then use OpenAPI
+Generator and Java compilation as fast feedback on the design.
+
+## Outcome
+
+You will replace the template's placeholder Items API with create, retrieve, and bounded list
+operations for books. The build will generate a `BooksApi` interface and API models from the
+contract. No controller is added until Tutorial 3.
+
+## Prerequisites
+
+- Complete [Tutorial 1](java-tutorial-01-create-service.html)
+- Amazon Corretto Java 25
+- The companion service builds with `./gradlew clean build`
+
+## Fast track
+
+1. Replace the placeholder contract with the Books API contract shown below.
+2. Remove the template's placeholder Item implementation and its tests; it no longer matches the
+   public contract.
+3. Run `./gradlew :laa-spring-boot-library-tutorial-api:openApiGenerate`.
+4. Inspect `BooksApi`, `Book`, `CreateBookRequest`, `BookList`, and `ErrorResponse` under the API
+   module's `generated/` directory without editing them.
+5. Run the API module's `compileJava` task, complete the ISBN challenge, then run a clean build.
+
+## Start with the contract
+
+Replace `laa-spring-boot-library-tutorial-api/open-api-specification.yml` with this contract:
+
+```yaml
+openapi: "3.0.3"
+info:
+  title: Library Books API
+  version: 1.0.0
+paths:
+  /api/v1/books:
+    post:
+      operationId: createBook
+      tags: [books]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBookRequest' }
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Book' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    get:
+      operationId: listBooks
+      tags: [books]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A bounded list of books
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookList' }
+  /api/v1/books/{bookId}:
+    get:
+      operationId: getBook
+      tags: [books]
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Book' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    BadRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    Book:
+      type: object
+      required: [id, title]
+      properties:
+        id: { type: integer, format: int64, minimum: 1, readOnly: true }
+        title: { type: string, minLength: 1, maxLength: 200, pattern: '.*\S.*' }
+        publicationYear: { type: integer, minimum: 1450, maximum: 2100 }
+        isbn:
+          type: string
+          pattern: '^(?:[0-9]{9}[0-9X]|[0-9]{13})$'
+          example: "9781473230982"
+    CreateBookRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200, pattern: '.*\S.*' }
+        publicationYear: { type: integer, minimum: 1450, maximum: 2100 }
+        isbn: { type: string, pattern: '^(?:[0-9]{9}[0-9X]|[0-9]{13})$' }
+    BookList:
+      type: object
+      required: [books, limit]
+      properties:
+        books:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/Book' }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+    ErrorResponse:
+      type: object
+      required: [status, code, message]
+      properties:
+        status: { type: integer, format: int32, minimum: 400, maximum: 599 }
+        code: { type: string, maxLength: 100 }
+        message: { type: string, maxLength: 500 }
+```
+
+It defines these operations:
+
+| Method and path | Operation ID | Result |
+| --- | --- | --- |
+| `POST /api/v1/books` | `createBook` | A created `Book` with a server-assigned ID |
+| `GET /api/v1/books/{bookId}` | `getBook` | One `Book`, or a stable error body |
+| `GET /api/v1/books?limit=20` | `listBooks` | At most 100 books |
+
+`operationId` becomes the generated Java method name. Component schemas remove repetition and
+give successful and error responses one shared vocabulary.
+
+The request model requires a non-blank title of at most 200 characters. Publication year is
+optional and constrained to 1450–2100. ISBN is optional and accepts an ISBN-10 or ISBN-13 written
+without separators. The response model alone owns the read-only ID: clients do not assign it.
+
+The list operation has a default limit of 20 and a maximum of 100, and `BookList.books` also has
+`maxItems: 100`. Applying the bound at the contract boundary makes the operational expectation
+visible even before persistence exists. Tutorial 6 will add pagination and filtering.
+
+`ErrorResponse` establishes `status`, machine-readable `code`, and human-readable `message` now.
+Later tutorials can implement and extend error handling without changing its basic client shape.
+
+## Beginner primer: OpenAPI structure
+
+OpenAPI is a language-neutral description of an HTTP API. `paths` describe routes and methods;
+`parameters` describe values in paths or queries; `requestBody` describes submitted JSON;
+`responses` describe status codes and returned JSON; and reusable `schemas` describe object shape.
+
+`required` says whether a value must exist. Constraints such as `minLength`, `maximum`, and
+`pattern` say which values are accepted. Examples are documentation, not test data or defaults.
+The generator translates this contract into Spring annotations, method signatures, Java types,
+and Bean Validation annotations.
+
+## Remove the placeholder feature
+
+The template's Item controller, service, mapper, entity, repository, exceptions, tests, and Item
+database migrations demonstrate the original placeholder contract. Remove those Item-specific
+files after replacing that contract. Keeping them would leave maintained code coupled to generated
+types that no longer exist. Retain the application, configuration, and actuator test.
+
+This is useful compilation feedback: if you generate Books code and immediately run
+`./gradlew compileJava`, references to `ItemsApi`, `Item`, and `ItemRequestBody` identify every
+placeholder implementation that the contract change made stale. Remove the obsolete placeholder
+slice, regenerate, and compile again. Tutorial 3 will add the Books implementation deliberately.
+
+## Generate and inspect Java
+
+Run generation explicitly:
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-api:openApiGenerate
+```
+
+Inspect the local output under
+`laa-spring-boot-library-tutorial-api/generated/src/main/java`. In particular, compare the
+contract with `api/BooksApi.java` and `model/CreateBookRequest.java`.
+
+Do not edit these files. `compileJava` depends on `openApiGenerate`, and `clean` deletes the entire
+generated directory. The OpenAPI document and generator configuration are maintained source; the
+Java output is disposable build output. Maintain the generator configuration in `build.gradle`,
+but do not commit the generated-source directory.
+
+The API module owns the contract and generated types. The service module depends on that module
+and will implement `BooksApi` in Tutorial 3. This keeps HTTP types separate from runtime and later
+persistence code.
+
+## Verify the result
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-api:clean \
+  :laa-spring-boot-library-tutorial-api:compileJava
+./gradlew clean build
+```
+
+Confirm generation produces `BooksApi` and the four model classes, both commands end with
+`BUILD SUCCESSFUL`, and `git status --short` does not show generated files.
+
+## Ruby and Python orientation
+
+This comparison is for orientation, not exact equivalence. The OpenAPI document plays some of the
+contract role that routes, request serializers, and response schemas may share in Rails, FastAPI,
+or Django REST Framework. Here it is the source used to generate the Java boundary; annotations in
+a handwritten controller are not the primary contract.
+
+## Challenge: understand the ISBN constraint
+
+Using the contract above:
+
+1. Add an optional ISBN field to both request and response schemas.
+2. Accept exactly 10 characters ending in a digit or uppercase `X`, or exactly 13 digits, with no
+   spaces or hyphens.
+3. Add an ISBN example, regenerate, and locate the resulting validation annotation in
+   `CreateBookRequest.java`.
+4. Temporarily weaken the pattern and regenerate to observe that generated Java follows the
+   contract, then restore the agreed constraint and run the clean build.
+
+
+## Further reading
+
+- [OpenAPI Specification 3.0.3](https://spec.openapis.org/oas/v3.0.3)
+- [OpenAPI Generator: Spring generator](https://openapi-generator.tech/docs/generators/spring/)
+- [OpenAPI Generator Gradle plugin](https://openapi-generator.tech/docs/plugins/)
+- [Spring request validation](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-validation.html)
+- [Gradle Java plugin](https://docs.gradle.org/current/userguide/java_plugin.html)

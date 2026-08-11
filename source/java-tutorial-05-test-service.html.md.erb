@@ -1,0 +1,260 @@
+---
+title: "Tutorial 5: Test the service deliberately"
+---
+
+# <%= current_page.data.title %>
+
+Build confidence at a small set of purposeful test seams rather than repeating the same assertion
+through every layer.
+
+## Outcome
+
+The service has fast mapper and service tests, HTTP-focused MVC tests, one repository test for a
+custom query, and a public-API PostgreSQL Testcontainers journey that starts from an empty schema.
+
+## Prerequisites
+
+- Complete [Tutorial 4](java-tutorial-04-persist-data.html)
+- Docker is running for repository and integration verification
+
+## Fast track
+
+1. Keep mapper and service tests focused on transformations, branches, and failures.
+2. Use `@WebMvcTest` for JSON binding, validation, status, body, and exception translation.
+3. Test only the custom case-insensitive, bounded repository query against PostgreSQL.
+4. Add one isolated Testcontainers journey through create, retrieve, and list.
+5. Run `test`, `integrationTest`, `check`, and `build`; inspect coverage as a clue, not a target.
+6. Complete the duplicate-ISBN challenge.
+
+## Choose the lowest seam that proves the behaviour
+
+The
+`BookMapperTest`
+proves transformations without Spring. `BookServiceTest` supplies repository doubles and exercises
+reuse, retrieval, bounding, and failure rules. These tests should not inspect generated mapper code,
+private methods, SQL, or incidental call order.
+
+`BookControllerTest` uses the MVC slice because it needs Spring's actual request binding and Bean
+Validation. It proves required JSON, list limits, response bodies, statuses, and stable error codes
+while replacing the service with a test double.
+
+The
+`BookRepositoryIntegrationTest`
+exists only for the custom case-insensitive author query and its bound. Do not test inherited
+`save`, `findById`, and `deleteAll` individually; the full journey already relies on them.
+
+The
+`BookApiIntegrationTest`
+starts the application on a random port. A PostgreSQL Testcontainer begins empty, Flyway creates
+the schema, and a real HTTP client creates, retrieves, and lists one book. Repositories clear data
+before each journey so order and IDs from another test cannot affect assertions.
+
+## Add the tests one seam at a time
+
+Create `src/test/java/uk/gov/justice/laa/library/tutorial/mapper/BookMapperTest.java` in the service
+module:
+
+```java
+package uk.gov.justice.laa.library.tutorial.mapper;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import uk.gov.justice.laa.library.tutorial.entity.AuthorEntity;
+import uk.gov.justice.laa.library.tutorial.entity.BookEntity;
+import uk.gov.justice.laa.library.tutorial.model.CreateBookRequest;
+
+class BookMapperTest {
+  private final BookMapper mapper = Mappers.getMapper(BookMapper.class);
+
+  @Test
+  void separatesApiAndPersistenceRelationships() {
+    var request = new CreateBookRequest("Kindred", "Octavia E. Butler");
+    BookEntity entity = mapper.toEntity(request);
+    assertThat(entity.getId()).isNull();
+    assertThat(entity.getAuthor()).isNull();
+    assertThat(entity.getTitle()).isEqualTo("Kindred");
+  }
+
+  @Test
+  void flattensTheAuthorName() {
+    var entity = new BookEntity();
+    entity.setAuthor(new AuthorEntity("Octavia E. Butler"));
+    assertThat(mapper.toApi(entity).getAuthorName()).isEqualTo("Octavia E. Butler");
+  }
+}
+```
+
+Run it immediately:
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-service:test --tests '*BookMapperTest'
+```
+
+Next create `src/test/java/uk/gov/justice/laa/library/tutorial/controller/BookControllerTest.java`.
+This minimal slice proves creation, validation, and stable missing-book errors:
+
+```java
+package uk.gov.justice.laa.library.tutorial.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.library.tutorial.exception.*;
+import uk.gov.justice.laa.library.tutorial.model.Book;
+import uk.gov.justice.laa.library.tutorial.service.BookService;
+
+@WebMvcTest({BookController.class, GlobalExceptionHandler.class})
+class BookControllerTest {
+  @Autowired MockMvc mvc;
+  @MockitoBean BookService service;
+
+  @Test
+  void createsABook() throws Exception {
+    when(service.create(any())).thenReturn(new Book(1L, "Kindred", "Octavia E. Butler"));
+    mvc.perform(post("/api/v1/books").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"title\":\"Kindred\",\"authorName\":\"Octavia E. Butler\"}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(1));
+  }
+
+  @Test
+  void rejectsABlankTitle() throws Exception {
+    mvc.perform(post("/api/v1/books").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"title\":\"   \",\"authorName\":\"Octavia E. Butler\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+  }
+
+  @Test
+  void translatesAMissingBook() throws Exception {
+    when(service.get(99L)).thenThrow(new BookNotFoundException(99L));
+    mvc.perform(get("/api/v1/books/99")).andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+}
+```
+
+Run `./gradlew :laa-spring-boot-library-tutorial-service:test --tests '*BookControllerTest'` before
+adding database tests.
+
+Create `src/integrationTest/java/uk/gov/justice/laa/library/tutorial/repository/BookRepositoryIntegrationTest.java`:
+
+```java
+@Import(TestcontainersConfig.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@Transactional
+class BookRepositoryIntegrationTest {
+  @Autowired BookRepository books;
+  @Autowired AuthorRepository authors;
+
+  @Test
+  void findsAnAuthorsBooksCaseInsensitivelyAndWithinBound() {
+    AuthorEntity author = authors.save(new AuthorEntity("Octavia E. Butler"));
+    save("Kindred", author);
+    save("Parable of the Sower", author);
+
+    var result = books.findByAuthorNameIgnoreCaseOrderById(
+        "OCTAVIA E. BUTLER", PageRequest.of(0, 1));
+    assertThat(result).extracting(BookEntity::getTitle).containsExactly("Kindred");
+  }
+
+  private void save(String title, AuthorEntity author) {
+    var book = new BookEntity();
+    book.setTitle(title);
+    book.setAuthor(author);
+    books.save(book);
+  }
+}
+```
+
+Use package `uk.gov.justice.laa.library.tutorial.repository` and import AssertJ, JUnit,
+`SpringBootTest`, `Import`, `PageRequest`, `Transactional`, `TestcontainersConfig`, and both entity
+types. The template's `TestcontainersConfig` supplies PostgreSQL to Spring. Run this test with:
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-service:integrationTest \
+  --tests '*BookRepositoryIntegrationTest'
+```
+
+Finally add `BookApiIntegrationTest` in the integration-test `controller` package. Start Spring on
+a random port, inject `TestRestTemplate`, clear both repositories in `@BeforeEach`, then exercise
+the public journey:
+
+```java
+var request = new CreateBookRequest("Kindred", "Octavia E. Butler")
+    .publicationYear(1979).isbn("9780807083697");
+var created = restTemplate.postForEntity("/api/v1/books", request, Book.class);
+assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+Long id = created.getBody().getId();
+assertThat(restTemplate.getForEntity("/api/v1/books/" + id, Book.class).getBody())
+    .usingRecursiveComparison().isEqualTo(created.getBody());
+assertThat(restTemplate.getForEntity("/api/v1/books?limit=1", BookList.class)
+    .getBody().getBooks()).containsExactly(created.getBody());
+```
+
+Use `@Import(TestcontainersConfig.class)`,
+`@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)`, and
+`@AutoConfigureTestRestTemplate` on the class. Run the full integration task after this journey.
+
+## Beginner primer: doubles, slices, and containers
+
+A test double substitutes a dependency to isolate one unit's decisions. A Spring test slice loads
+only the framework area being tested. A Testcontainer is a disposable real service, not an in-memory
+database pretending to be PostgreSQL. Each adds cost and confidence at a different boundary.
+
+Prefer externally observable results over implementation details. An assertion about a returned
+book or HTTP error survives refactoring; an assertion about a private helper or arbitrary call order
+usually does not.
+
+## Run the feedback loops
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-service:test --tests '*Book*'
+./gradlew :laa-spring-boot-library-tutorial-service:integrationTest
+./gradlew :laa-spring-boot-library-tutorial-service:check
+./gradlew clean build
+```
+
+The first command is the regular fast loop. The Docker-dependent integration task is slower and
+proves migration and runtime wiring. `check` adds static checks; the clean build proves reproducible
+generation and compilation.
+
+JaCoCo highlights code not exercised, but a high percentage cannot show that assertions are useful
+or boundaries are correct. Investigate surprising gaps; do not add low-value tests solely to move a
+number.
+
+## Observable verification
+
+Temporarily change the expected missing-book code in the MVC test and confirm that only the HTTP
+slice fails. Change the custom repository method to case-sensitive and confirm its focused test
+fails. Restore both, then run all four commands above and observe a green result.
+
+## Ruby and Python orientation
+
+This is orientation, not equivalence. JUnit/AssertJ and Mockito fill roles familiar from RSpec or
+pytest and unittest.mock. `@WebMvcTest` resembles a focused request/controller test; Testcontainers
+provides a disposable real PostgreSQL dependency rather than a framework-specific test database.
+
+## Challenge: specify duplicate ISBN behaviour
+
+ISBN is optional and is not unique yet. Add one integration test that creates two books with the
+same non-null ISBN and records the current behaviour. Write down the desired assertion - the second
+create should return `409` with `DUPLICATE_ISBN` - but do not commit a failing or disabled test.
+Tutorial 6 adds the migration and implementation first, then adds the passing regression test.
+
+
+## Further reading
+
+- [Spring Boot testing](https://docs.spring.io/spring-boot/reference/testing/index.html)
+- [Spring MVC Test](https://docs.spring.io/spring-framework/reference/testing/mockmvc.html)
+- [Testcontainers for Java](https://java.testcontainers.org/)
+- [JUnit 5 user guide](https://junit.org/junit5/docs/current/user-guide/)
+- [AssertJ](https://assertj.github.io/doc/)
+- [JaCoCo](https://www.jacoco.org/jacoco/trunk/doc/)

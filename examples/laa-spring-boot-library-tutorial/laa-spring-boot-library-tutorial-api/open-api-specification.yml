@@ -1,0 +1,302 @@
+openapi: "3.0.3"
+info:
+  title: Library Books API
+  version: 1.0.0
+  description: Create and browse books in the library catalogue.
+paths:
+  /api/v1/books:
+    post:
+      tags:
+        - books
+      summary: Create a book
+      operationId: createBook
+      requestBody:
+        required: true
+        description: The book to add to the catalogue. The server assigns its identifier.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookRequest'
+            example:
+              title: The Left Hand of Darkness
+              authorName: Ursula K. Le Guin
+              publicationYear: 1969
+              isbn: "9781473230982"
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              example:
+                id: 42
+                title: The Left Hand of Darkness
+                authorName: Ursula K. Le Guin
+                publicationYear: 1969
+                isbn: "9781473230982"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - books
+      summary: List books
+      operationId: listBooks
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/AuthorName'
+        - $ref: '#/components/parameters/PublicationYear'
+      responses:
+        '200':
+          description: A bounded list of books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookList'
+              example:
+                books:
+                  - id: 42
+                    title: The Left Hand of Darkness
+                    authorName: Ursula K. Le Guin
+                    publicationYear: 1969
+                    isbn: "9781473230982"
+                limit: 20
+                page: 0
+                totalItems: 1
+                totalPages: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/books/{bookId}:
+    get:
+      tags:
+        - books
+      summary: Get a book
+      operationId: getBook
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: Server-assigned identifier of the book
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          example: 42
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              example:
+                id: 42
+                title: The Left Hand of Darkness
+                authorName: Ursula K. Le Guin
+                publicationYear: 1969
+                isbn: "9781473230982"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of books to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+    Page:
+      name: page
+      in: query
+      description: Zero-based page number
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      example: 0
+    AuthorName:
+      name: authorName
+      in: query
+      description: Filter by an author's full name, case-insensitively
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+      example: Ursula K. Le Guin
+    PublicationYear:
+      name: publicationYear
+      in: query
+      description: Filter by exact publication year
+      schema:
+        type: integer
+        minimum: 1450
+        maximum: 2100
+      example: 1969
+  responses:
+    BadRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: The request conflicts with existing catalogue data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: An unexpected error occurred
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - title
+        - authorName
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          readOnly: true
+          description: Server-assigned identifier
+          example: 42
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '.*\S.*'
+          description: A non-blank book title
+          example: The Left Hand of Darkness
+        authorName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '.*\S.*'
+          description: Name of the book's author
+          example: Ursula K. Le Guin
+        publicationYear:
+          type: integer
+          minimum: 1450
+          maximum: 2100
+          description: Optional four-digit publication year
+          example: 1969
+        isbn:
+          type: string
+          pattern: '^(?:[0-9]{9}[0-9X]|[0-9]{13})$'
+          description: Optional ISBN-10 or ISBN-13 without separators
+          example: "9781473230982"
+    CreateBookRequest:
+      type: object
+      required:
+        - title
+        - authorName
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '.*\S.*'
+          description: A non-blank book title
+          example: The Left Hand of Darkness
+        authorName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '.*\S.*'
+          description: Name of the book's author
+          example: Ursula K. Le Guin
+        publicationYear:
+          type: integer
+          minimum: 1450
+          maximum: 2100
+          description: Optional four-digit publication year
+          example: 1969
+        isbn:
+          type: string
+          pattern: '^(?:[0-9]{9}[0-9X]|[0-9]{13})$'
+          description: Optional ISBN-10 or ISBN-13 without separators
+          example: "9781473230982"
+    BookList:
+      type: object
+      required:
+        - books
+        - limit
+        - page
+        - totalItems
+        - totalPages
+      properties:
+        books:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Book'
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Bound applied to this response
+          example: 20
+        page:
+          type: integer
+          minimum: 0
+          description: Zero-based page number returned
+          example: 0
+        totalItems:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Number of matching books across every page
+          example: 1
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Number of pages available at the selected limit
+          example: 1
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+        - message
+      properties:
+        status:
+          type: integer
+          format: int32
+          minimum: 400
+          maximum: 599
+          example: 404
+        code:
+          type: string
+          maxLength: 100
+          example: BOOK_NOT_FOUND
+        message:
+          type: string
+          maxLength: 500
+          example: Book 42 was not found

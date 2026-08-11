@@ -1,0 +1,22 @@
+.gradle
+build/
+__pycache__/
+*.pyc
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.DS_Store
+
+laa-spring-boot-library-tutorial-api/generated
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### VS Code ###
+.vscode/

@@ -1,0 +1,264 @@
+---
+title: "Tutorial 6: Evolve the API safely"
+---
+
+# <%= current_page.data.title %>
+
+Evolve the contract, persistence, implementation, and tests together while preserving existing
+clients and immutable database history.
+
+## Outcome
+
+The completed service returns bounded pages, filters books by author or publication year, rejects
+duplicate supplied ISBNs with a stable error, and builds cleanly for normal CI.
+
+## Prerequisites
+
+- Complete [Tutorial 5](java-tutorial-05-test-service.html)
+- Docker is running
+
+## Fast track
+
+1. Add optional `page`, `authorName`, and `publicationYear` query parameters to list books.
+2. Add pagination metadata without renaming or removing existing response fields.
+3. Compose persistence filters only when parameters are present and retain ID ordering.
+4. Add `V2__make_supplied_isbn_unique.sql`; do not edit `V1`.
+5. Translate duplicate ISBN conflicts to status `409` and code `DUPLICATE_ISBN`.
+6. Prove publication-year filtering at contract, repository, and public-API seams.
+7. Run the final CI-readiness commands and complete the production checklist.
+
+## Prefer additive contract changes
+
+The existing list route and `limit` parameter remain unchanged. Optional filters and a zero-based
+`page` parameter are additive. `BookList` retains `books` and `limit` while adding `page`,
+`totalItems`, and `totalPages`. Removing a field, renaming an operation, changing an existing type,
+or making an optional request field required would be breaking alternatives and need explicit
+versioning and migration planning.
+
+In the list operation, retain `Limit` and add these parameter references:
+
+```yaml
+parameters:
+  - $ref: '#/components/parameters/Limit'
+  - $ref: '#/components/parameters/Page'
+  - $ref: '#/components/parameters/AuthorName'
+  - $ref: '#/components/parameters/PublicationYear'
+```
+
+Define them under `components.parameters`:
+
+```yaml
+Page:
+  name: page
+  in: query
+  schema: { type: integer, minimum: 0, default: 0 }
+AuthorName:
+  name: authorName
+  in: query
+  schema: { type: string, minLength: 1, maxLength: 200 }
+PublicationYear:
+  name: publicationYear
+  in: query
+  schema: { type: integer, minimum: 1450, maximum: 2100 }
+```
+
+Keep `books` and `limit` in `BookList.required`, add `page`, `totalItems`, and `totalPages`, then
+add their properties:
+
+```yaml
+page: { type: integer, minimum: 0 }
+totalItems: { type: integer, format: int64, minimum: 0 }
+totalPages: { type: integer, minimum: 0 }
+```
+
+Add a `409` response to the create operation using the existing `ErrorResponse` schema. Regenerate
+immediately. Compilation now identifies every maintained method signature that must change; never
+patch generated Java.
+
+## Bound and filter catalogue pages
+
+`limit` remains between 1 and 100 and `page` cannot be negative. The service constructs a
+`PageRequest`, and a JPA specification adds author and publication-year predicates only when the
+client supplies them. Results retain server-ID ordering. Spring Data returns content and totals,
+which the service maps to the public pagination shape.
+
+Author matching is case-insensitive. Publication year is exact and carries the same 1450–2100
+validation as book creation. These rules exist in the OpenAPI contract, persistence query, and
+integration journey rather than only in prose.
+
+Extend `BookRepository` with `JpaSpecificationExecutor<BookEntity>`, then update the controller:
+
+```java
+@Override
+public ResponseEntity<BookList> listBooks(
+    Integer limit, Integer page, String authorName, Integer publicationYear) {
+  return ResponseEntity.ok(bookService.list(limit, page, authorName, publicationYear));
+}
+```
+
+Replace the service's list method and add the specification helper:
+
+```java
+@Transactional(readOnly = true)
+public BookList list(int limit, int page, String authorName, Integer publicationYear) {
+  var result = bookRepository.findAll(
+      catalogueFilters(authorName, publicationYear), PageRequest.of(page, limit));
+  return new BookList(bookMapper.toApi(result.getContent()), limit, page,
+      result.getTotalElements(), result.getTotalPages());
+}
+
+private Specification<BookEntity> catalogueFilters(
+    String authorName, Integer publicationYear) {
+  return (root, query, cb) -> {
+    var predicates = new ArrayList<Predicate>();
+    if (authorName != null) {
+      predicates.add(cb.equal(cb.lower(root.get("author").get("name")),
+          authorName.toLowerCase(Locale.ROOT)));
+    }
+    if (publicationYear != null) {
+      predicates.add(cb.equal(root.get("publicationYear"), publicationYear));
+    }
+    query.orderBy(cb.asc(root.get("id")));
+    return cb.and(predicates.toArray(Predicate[]::new));
+  };
+}
+```
+
+Import `jakarta.persistence.criteria.Predicate`, `java.util.ArrayList`, `java.util.Locale`,
+`PageRequest`, and `Specification`.
+
+Try the completed behaviour:
+
+```bash
+curl -sS 'http://localhost:8081/api/v1/books?limit=20&page=0'
+curl -sS 'http://localhost:8081/api/v1/books?authorName=Octavia%20E.%20Butler'
+curl -sS 'http://localhost:8081/api/v1/books?publicationYear=1979'
+```
+
+## Evolve the schema immutably
+
+Do not add ISBN uniqueness by editing the already applied `V1` migration. Add
+`V2__make_supplied_isbn_unique.sql`.
+Its partial unique index applies only when ISBN is non-null, preserving the original optional field.
+
+```sql
+CREATE UNIQUE INDEX uk_books_isbn_when_supplied
+    ON books (isbn)
+    WHERE isbn IS NOT NULL;
+```
+
+The service translates that expected conflict into `409` with `DUPLICATE_ISBN`. It does not expose
+constraint names or driver messages. `ErrorResponse` still has `status`, `code`, and `message`, so
+clients can branch on a stable code while humans receive a useful explanation.
+
+Create `exception/DuplicateIsbnException.java`:
+
+```java
+package uk.gov.justice.laa.library.tutorial.exception;
+
+public class DuplicateIsbnException extends RuntimeException {
+  public DuplicateIsbnException(String isbn, Throwable cause) {
+    super("ISBN %s is already in the catalogue".formatted(isbn), cause);
+  }
+}
+```
+
+Wrap `bookRepository.save(entity)` in `BookService.create`:
+
+```java
+try {
+  return bookMapper.toApi(bookRepository.save(entity));
+} catch (DataIntegrityViolationException exception) {
+  if (request.getIsbn() != null) {
+    throw new DuplicateIsbnException(request.getIsbn(), exception);
+  }
+  throw exception;
+}
+```
+
+Import `DataIntegrityViolationException` and `DuplicateIsbnException`. Add this handler to
+`GlobalExceptionHandler`:
+
+```java
+@ExceptionHandler(DuplicateIsbnException.class)
+ResponseEntity<ErrorResponse> duplicateIsbn(DuplicateIsbnException exception) {
+  return response(HttpStatus.CONFLICT, "DUPLICATE_ISBN", "ISBN is already in the catalogue");
+}
+```
+
+In a real service, inspect existing duplicates before deploying the unique index and plan cleanup
+and rollback. This tutorial's empty Testcontainer makes that precondition deterministic.
+
+## Challenge: publication-year filtering end to end
+
+Implement `publicationYear` using the steps below:
+
+1. Add the optional constrained query parameter to OpenAPI and regenerate.
+2. Add a repository test containing books from two years and assert only the requested year returns.
+3. Pass the filter through the controller and service without changing unfiltered behaviour.
+4. Extend the public integration journey to call the filtered URL and assert pagination totals.
+5. Run generation, focused tests, integration tests, and a clean build.
+
+## Observable verification
+
+Extend `BookApiIntegrationTest` with a duplicate-ISBN regression test. The existing injected
+`TestRestTemplate` and request model are reused:
+
+```java
+@Test
+void rejectsADuplicateSuppliedIsbn() {
+  var first = new CreateBookRequest("Kindred", "Octavia E. Butler")
+      .isbn("9780807083697");
+  var second = new CreateBookRequest("Another edition", "Octavia E. Butler")
+      .isbn("9780807083697");
+
+  assertThat(restTemplate.postForEntity("/api/v1/books", first, Book.class).getStatusCode())
+      .isEqualTo(HttpStatus.CREATED);
+  var conflict = restTemplate.postForEntity("/api/v1/books", second, ErrorResponse.class);
+  assertThat(conflict.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+  assertThat(conflict.getBody().getCode()).isEqualTo("DUPLICATE_ISBN");
+}
+```
+
+Add another journey that creates books from two years, requests
+`/api/v1/books?publicationYear=1979&limit=20&page=0`, and asserts that every returned book has
+publication year `1979`, `totalItems` is correct, and `page` is zero. This tests the public contract
+rather than calling the specification helper directly.
+
+```bash
+./gradlew :laa-spring-boot-library-tutorial-api:openApiGenerate
+./gradlew :laa-spring-boot-library-tutorial-service:test --tests '*Book*'
+./gradlew :laa-spring-boot-library-tutorial-service:integrationTest
+./gradlew clean build
+```
+
+Confirm the Testcontainers logs show an empty schema migrating through both `V1` and `V2`. Confirm
+unfiltered list calls still work, filtered calls return correct totals, invalid parameters return
+`INVALID_REQUEST`, and a duplicate supplied ISBN returns `DUPLICATE_ISBN`.
+
+## Ruby and Python orientation
+
+This is orientation, not equivalence. Additive serializer/schema fields and ordered Rails or Django
+migrations follow similar compatibility concerns. JPA specifications resemble composable query
+scopes or queryset filters, but generated OpenAPI types keep Java's HTTP boundary explicit.
+
+## Production next steps
+
+The example is ready for normal CI, not production deployment. Before operating a real service:
+
+- add authentication and authorisation appropriate to the data and users;
+- review structured logging, metrics, traces, alerts, health probes, and Sentry configuration;
+- assess rate limiting, request size, abuse cases, and sensitive-data handling;
+- plan migration rollout and rollback against real data volumes;
+- use approved container, Kubernetes, secret, and platform deployment patterns;
+- run dependency, security, accessibility where applicable, and operational-readiness checks.
+
+
+## Further reading
+
+- [OpenAPI compatibility guidance](https://spec.openapis.org/oas/v3.0.3)
+- [Spring Data JPA specifications](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html)
+- [Spring Data pagination](https://docs.spring.io/spring-data/commons/reference/repositories/query-methods-details.html#repositories.special-parameters)
+- [Flyway versioned migrations](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations)
+- [PostgreSQL partial indexes](https://www.postgresql.org/docs/current/indexes-partial.html)
+- [Semantic Versioning](https://semver.org/)
