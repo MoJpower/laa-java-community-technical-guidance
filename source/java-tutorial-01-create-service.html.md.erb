@@ -25,9 +25,10 @@ Experienced Java developers can follow these steps and use the primers below onl
 
 1. Create a repository from the GitHub template and clone your new repository.
 2. Run the initialiser with the identity in this tutorial, first with `--dry-run` and then without it.
-3. Inspect `settings.gradle`, both module build files, and the package tree.
-4. Run `./gradlew projects`, `./gradlew tasks --group build`, and `./gradlew clean build`.
-5. Add the application metadata shown below and verify it through HTTP.
+3. Start Docker and run `docker compose up -d postgres` to start the local database.
+4. Inspect `settings.gradle`, both module build files, and the package tree.
+5. Run `./gradlew projects`, `./gradlew tasks --group build`, and `./gradlew clean build`.
+6. Add the application metadata shown below and verify it through HTTP.
 
 ## Create and clone the repository
 
@@ -103,6 +104,20 @@ types and prevent naming collisions; modules define the larger build and depende
 
 ## Inspect and build
 
+Start Docker Desktop (or your Docker engine) and wait until it is running. Then start the
+local PostgreSQL service:
+
+```bash
+docker compose up -d postgres
+docker compose ps
+```
+
+Wait until the `postgres` service reports healthy before continuing.
+
+Docker Compose starts the local database. Flyway applies the schema migrations when the
+application starts. Integration tests use their own PostgreSQL container through
+Testcontainers, so they also require Docker to be running.
+
 ```bash
 ./gradlew --version
 ./gradlew javaToolchains
@@ -137,7 +152,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health, info
 
 info:
   app:
@@ -146,11 +161,11 @@ info:
     description: A training service for cataloguing books
 ```
 
-Run the build, start PostgreSQL, and start the service:
+Rebuild after changing the metadata, then start the service against the PostgreSQL
+container started earlier:
 
 ```bash
 ./gradlew clean build
-docker compose up -d postgres
 ./gradlew :laa-spring-boot-library-tutorial-service:bootRun
 ```
 
@@ -161,8 +176,17 @@ curl -s http://localhost:8181/actuator/health
 curl -s http://localhost:8181/actuator/info
 ```
 
-Expect health status `UP` and an `app` object containing the three metadata values. If the service
-cannot connect to PostgreSQL, run `docker compose ps` and compare the datasource port in
+From the first CURL, expect:
+```json
+{"groups":["liveness","readiness"],"status":"UP"}%
+```
+
+From the second CURL, expect:
+```json
+{"build":{"artifact":"laa-spring-boot-library-tutorial-service","name":"laa-spring-boot-library-tutorial-service","time":"2026-10-09T11:57:23.633Z","version":"1.0.0","group":"uk.gov.justice.laa.library.tutorial"}}%
+```
+
+If the service cannot connect to PostgreSQL, run `docker compose ps` and compare the datasource port in
 `application.yml` with the published database port. Stop with `Ctrl+C`, then run
 `docker compose down`.
 
